@@ -183,9 +183,19 @@ export default function ChaosLabPage() {
 
   // Run Experiment
   const handleRunExperiment = async (overrideCount) => {
+    // Ensure Demo chaos preset values (timeoutRate 0.3, errorRate 0.1) if not explicitly set
+    const chaosPayload = {
+      timeoutRate: chaos.timeoutRate > 0 ? chaos.timeoutRate : 0.3,
+      errorRate: chaos.errorRate > 0 ? chaos.errorRate : 0.1,
+      channelFailureRate: chaos.channelFailureRate ?? 0.0,
+      chargeOnTimeoutProbability: chaos.chargeOnTimeoutProbability ?? 0.5,
+      latencyMs: chaos.latencyMs ?? 500
+    };
+
     const runConfig = {
       ...expConfig,
-      count: overrideCount || expConfig.count
+      count: overrideCount || expConfig.count,
+      chaos: chaosPayload
     };
 
     setStartingExp(true);
@@ -205,6 +215,44 @@ export default function ChaosLabPage() {
         setExpError(err.message || 'Failed to trigger experiment');
         toast.error(err.message || 'Failed to start experiment');
       }
+      setExpStatus(null);
+    } finally {
+      setStartingExp(false);
+    }
+  };
+
+  // Prepare Demo: Reset data -> Apply Demo chaos (timeout 0.3, error 0.1) -> Run Quick 60
+  const handlePrepareDemo = async () => {
+    setStartingExp(true);
+    setExpError(null);
+    try {
+      toast.info('Step 1/3: Purging old demo records...');
+      await api.resetSystem();
+
+      toast.info('Step 2/3: Applying Demo chaos preset (30% timeouts, 10% errors)...');
+      const demoChaos = {
+        timeoutRate: 0.3,
+        errorRate: 0.1,
+        channelFailureRate: 0.0,
+        chargeOnTimeoutProbability: 0.5,
+        latencyMs: 500
+      };
+      setChaos(demoChaos);
+      await api.updateChaosConfig(demoChaos);
+
+      toast.info('Step 3/3: Launching Quick 60 benchmark trial...');
+      setExpStatus('RUNNING');
+      setExpPhase(0);
+      const res = await api.runExperiment({
+        count: 60,
+        concurrency: 10,
+        duplicateSubmitRate: 0.2,
+        chaos: demoChaos
+      });
+      setActiveExpId(res.id);
+      toast.success(`Demo benchmark #${res.id.substring(0, 8)} initialized!`);
+    } catch (err) {
+      toast.error(err.message || 'Prepare demo failed');
       setExpStatus(null);
     } finally {
       setStartingExp(false);
@@ -380,7 +428,17 @@ export default function ChaosLabPage() {
               </p>
 
               {/* Presets Row */}
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  disabled={isRunning || startingExp}
+                  onClick={handlePrepareDemo}
+                  icon={Sparkles}
+                >
+                  Prepare Demo (Reset + 60 Txns)
+                </Button>
+
                 <Button
                   variant="accent"
                   size="md"
