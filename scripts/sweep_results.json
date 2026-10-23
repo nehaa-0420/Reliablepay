@@ -1,0 +1,1604 @@
+[
+  {
+    "category": "Baseline Defaults",
+    "label": "Baseline Defaults (Timeout 2s, Grace 6s, Delay 500ms, MaxAttempts 4)",
+    "params": {
+      "bankReadTimeoutMs": 2000,
+      "reconcileGraceMs": 6000,
+      "retryBaseDelayMs": 500,
+      "retryMaxAttempts": 4
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 18.5,
+        "min": 16,
+        "max": 21
+      },
+      "overcharged": {
+        "mean": 2450,
+        "min": 2100,
+        "max": 2800
+      },
+      "recoveryMs": {
+        "mean": 13762.732533333334,
+        "min": 12440.4758,
+        "max": 15084.989266666667
+      },
+      "p95LatencyMs": {
+        "mean": 2007.5,
+        "min": 2006,
+        "max": 2009
+      },
+      "ordersSucceeded": {
+        "mean": 48.5,
+        "min": 48,
+        "max": 49
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 17381.56757773109,
+        "min": 15538.491214285714,
+        "max": 19224.64394117647
+      },
+      "p95LatencyMs": {
+        "mean": 2006.75,
+        "min": 2006.5,
+        "max": 2007
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "e265b4a7-3a85-49f0-8b6a-1868e6197a27",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 67053,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 57,
+          "deadLettered": 3,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 21,
+          "overchargedAmount": 2800,
+          "retrySuccessRate": 0.9090909090909091,
+          "avgRecoveryMs": 15084.989266666667,
+          "avgLatencyMs": 648.1607142857143,
+          "p95LatencyMs": 2009,
+          "ordersSucceeded": 48,
+          "ordersFailed": 2
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 19224.64394117647,
+          "avgLatencyMs": 788.3783783783783,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 21,
+          "overchargedAmountDelta": 2800,
+          "ordersSucceededDelta": 2,
+          "deadLetteredDelta": 3,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "3042face-37b4-4408-9fe5-6c5e4bb3840e",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 57067,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 55,
+          "deadLettered": 5,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 16,
+          "overchargedAmount": 2100,
+          "retrySuccessRate": 0.8,
+          "avgRecoveryMs": 12440.4758,
+          "avgLatencyMs": 584.08,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 15538.491214285714,
+          "avgLatencyMs": 624.5070422535211,
+          "p95LatencyMs": 2006.5,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 16,
+          "overchargedAmountDelta": 2100,
+          "ordersSucceededDelta": 1,
+          "deadLetteredDelta": 5,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  },
+  {
+    "category": "Client Read Timeout",
+    "label": "Client Timeout 1000ms (1s)",
+    "params": {
+      "bankReadTimeoutMs": 1000,
+      "reconcileGraceMs": 6000,
+      "retryBaseDelayMs": 500,
+      "retryMaxAttempts": 4
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 17.5,
+        "min": 17,
+        "max": 18
+      },
+      "overcharged": {
+        "mean": 2450,
+        "min": 2200,
+        "max": 2700
+      },
+      "recoveryMs": {
+        "mean": 9384.382153846153,
+        "min": 8723.79596153846,
+        "max": 10044.968346153846
+      },
+      "p95LatencyMs": {
+        "mean": 1005.5,
+        "min": 1005,
+        "max": 1006
+      },
+      "ordersSucceeded": {
+        "mean": 49.5,
+        "min": 49,
+        "max": 50
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 9273.1402,
+        "min": 5250.2372,
+        "max": 13296.0432
+      },
+      "p95LatencyMs": {
+        "mean": 1005.5,
+        "min": 1005,
+        "max": 1006
+      },
+      "ordersSucceeded": {
+        "mean": 42,
+        "min": 34,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "b65be68b-04ce-483d-8715-8ca499e6d3dc",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 40269,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 59,
+          "deadLettered": 1,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 17,
+          "overchargedAmount": 2200,
+          "retrySuccessRate": 0.9629629629629629,
+          "avgRecoveryMs": 10044.968346153846,
+          "avgLatencyMs": 317.0098039215686,
+          "p95LatencyMs": 1005,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 13296.0432,
+          "avgLatencyMs": 318.7945205479452,
+          "p95LatencyMs": 1006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 17,
+          "overchargedAmountDelta": 2200,
+          "ordersSucceededDelta": 1,
+          "deadLetteredDelta": 1,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "6b978b7b-6dc7-4245-8605-4e7a1dd72054",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 310176,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 59,
+          "deadLettered": 1,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 18,
+          "overchargedAmount": 2700,
+          "retrySuccessRate": 0.9629629629629629,
+          "avgRecoveryMs": 8723.79596153846,
+          "avgLatencyMs": 313.59,
+          "p95LatencyMs": 1006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 34,
+          "deadLettered": 0,
+          "stuckUnknown": 15,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 0.8333333333333334,
+          "avgRecoveryMs": 5250.2372,
+          "avgLatencyMs": 267.29824561403507,
+          "p95LatencyMs": 1005,
+          "ordersSucceeded": 34,
+          "ordersFailed": 16
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 18,
+          "overchargedAmountDelta": 2700,
+          "ordersSucceededDelta": -16,
+          "deadLetteredDelta": 1,
+          "stuckUnknownDelta": -15
+        }
+      }
+    ]
+  },
+  {
+    "category": "Client Read Timeout",
+    "label": "Client Timeout 3000ms (3s)",
+    "params": {
+      "bankReadTimeoutMs": 3000,
+      "reconcileGraceMs": 6000,
+      "retryBaseDelayMs": 500,
+      "retryMaxAttempts": 4
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 16.5,
+        "min": 15,
+        "max": 18
+      },
+      "overcharged": {
+        "mean": 2050,
+        "min": 1900,
+        "max": 2200
+      },
+      "recoveryMs": {
+        "mean": 20020.01613768116,
+        "min": 19898.082666666665,
+        "max": 20141.949608695653
+      },
+      "p95LatencyMs": {
+        "mean": 3007,
+        "min": 3007,
+        "max": 3007
+      },
+      "ordersSucceeded": {
+        "mean": 47.5,
+        "min": 46,
+        "max": 49
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 18125.158745238095,
+        "min": 16498.960133333334,
+        "max": 19751.357357142857
+      },
+      "p95LatencyMs": {
+        "mean": 3006.85,
+        "min": 3006,
+        "max": 3007.7
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "78d856d7-4577-412e-a870-a2cbd16f1e45",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 65520,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 57,
+          "deadLettered": 3,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 15,
+          "overchargedAmount": 1900,
+          "retrySuccessRate": 0.8888888888888888,
+          "avgRecoveryMs": 19898.082666666665,
+          "avgLatencyMs": 825.7358490566038,
+          "p95LatencyMs": 3007,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 19751.357357142857,
+          "avgLatencyMs": 945.9285714285714,
+          "p95LatencyMs": 3006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 15,
+          "overchargedAmountDelta": 1900,
+          "ordersSucceededDelta": 1,
+          "deadLetteredDelta": 3,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "b39b6a04-21fd-40c3-a6bf-0d0b1ced794f",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 58960,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 56,
+          "deadLettered": 4,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 18,
+          "overchargedAmount": 2200,
+          "retrySuccessRate": 0.8518518518518519,
+          "avgRecoveryMs": 20141.949608695653,
+          "avgLatencyMs": 909.0471698113207,
+          "p95LatencyMs": 3007,
+          "ordersSucceeded": 46,
+          "ordersFailed": 4
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 16498.960133333334,
+          "avgLatencyMs": 809.8507462686567,
+          "p95LatencyMs": 3007.7,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 18,
+          "overchargedAmountDelta": 2200,
+          "ordersSucceededDelta": 4,
+          "deadLetteredDelta": 4,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  },
+  {
+    "category": "Reconciliation Grace Period",
+    "label": "Grace Period 4000ms (4s)",
+    "params": {
+      "bankReadTimeoutMs": 2000,
+      "reconcileGraceMs": 4000,
+      "retryBaseDelayMs": 500,
+      "retryMaxAttempts": 4
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 21.5,
+        "min": 19,
+        "max": 24
+      },
+      "overcharged": {
+        "mean": 2700,
+        "min": 2600,
+        "max": 2800
+      },
+      "recoveryMs": {
+        "mean": 16442.92032680251,
+        "min": 14656.998136363636,
+        "max": 18228.842517241377
+      },
+      "p95LatencyMs": {
+        "mean": 2007,
+        "min": 2007,
+        "max": 2007
+      },
+      "ordersSucceeded": {
+        "mean": 48,
+        "min": 47,
+        "max": 49
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 14446.914892857143,
+        "min": 13787.260785714287,
+        "max": 15106.569
+      },
+      "p95LatencyMs": {
+        "mean": 2008.075,
+        "min": 2008,
+        "max": 2008.15
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "5f068001-e1e4-4c95-a83d-cb797981008b",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 49370,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 56,
+          "deadLettered": 4,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 19,
+          "overchargedAmount": 2600,
+          "retrySuccessRate": 0.8461538461538461,
+          "avgRecoveryMs": 14656.998136363636,
+          "avgLatencyMs": 594.6857142857143,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 47,
+          "ordersFailed": 3
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 13787.260785714287,
+          "avgLatencyMs": 567.0140845070423,
+          "p95LatencyMs": 2008,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 19,
+          "overchargedAmountDelta": 2600,
+          "ordersSucceededDelta": 3,
+          "deadLetteredDelta": 4,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "8510fca4-feaa-4a56-9cfe-35c33a963eaf",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 83039,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 58,
+          "deadLettered": 2,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 24,
+          "overchargedAmount": 2800,
+          "retrySuccessRate": 0.9354838709677419,
+          "avgRecoveryMs": 18228.842517241377,
+          "avgLatencyMs": 670.5964912280701,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 15106.569,
+          "avgLatencyMs": 646.6025641025641,
+          "p95LatencyMs": 2008.15,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 24,
+          "overchargedAmountDelta": 2800,
+          "ordersSucceededDelta": 1,
+          "deadLetteredDelta": 2,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  },
+  {
+    "category": "Reconciliation Grace Period",
+    "label": "Grace Period 8000ms (8s)",
+    "params": {
+      "bankReadTimeoutMs": 2000,
+      "reconcileGraceMs": 8000,
+      "retryBaseDelayMs": 500,
+      "retryMaxAttempts": 4
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 18.5,
+        "min": 18,
+        "max": 19
+      },
+      "overcharged": {
+        "mean": 2450,
+        "min": 2300,
+        "max": 2600
+      },
+      "recoveryMs": {
+        "mean": 15793.497329431437,
+        "min": 15685.85304347826,
+        "max": 15901.141615384615
+      },
+      "p95LatencyMs": {
+        "mean": 2006.5,
+        "min": 2006,
+        "max": 2007
+      },
+      "ordersSucceeded": {
+        "mean": 46,
+        "min": 46,
+        "max": 46
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 17070.491583333333,
+        "min": 13298.0055,
+        "max": 20842.977666666666
+      },
+      "p95LatencyMs": {
+        "mean": 2005.5,
+        "min": 2005,
+        "max": 2006
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "5564694a-61c1-4df3-ac4b-74047d82616f",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 64219,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 56,
+          "deadLettered": 4,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 18,
+          "overchargedAmount": 2300,
+          "retrySuccessRate": 0.8666666666666667,
+          "avgRecoveryMs": 15901.141615384615,
+          "avgLatencyMs": 652.6388888888889,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 46,
+          "ordersFailed": 4
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 13298.0055,
+          "avgLatencyMs": 464.7076923076923,
+          "p95LatencyMs": 2005,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 18,
+          "overchargedAmountDelta": 2300,
+          "ordersSucceededDelta": 4,
+          "deadLetteredDelta": 4,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "f67ad869-f127-4c39-a8ac-9ea9a799d3f2",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 58402,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 55,
+          "deadLettered": 5,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 19,
+          "overchargedAmount": 2600,
+          "retrySuccessRate": 0.8214285714285714,
+          "avgRecoveryMs": 15685.85304347826,
+          "avgLatencyMs": 670.2882882882883,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 46,
+          "ordersFailed": 4
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 20842.977666666666,
+          "avgLatencyMs": 790.7868852459017,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 19,
+          "overchargedAmountDelta": 2600,
+          "ordersSucceededDelta": 4,
+          "deadLetteredDelta": 5,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  },
+  {
+    "category": "Retry Base Delay",
+    "label": "Retry Base Delay 250ms",
+    "params": {
+      "bankReadTimeoutMs": 2000,
+      "reconcileGraceMs": 6000,
+      "retryBaseDelayMs": 250,
+      "retryMaxAttempts": 4
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 18,
+        "min": 15,
+        "max": 21
+      },
+      "overcharged": {
+        "mean": 2050,
+        "min": 1800,
+        "max": 2300
+      },
+      "recoveryMs": {
+        "mean": 12470.85224125874,
+        "min": 9528.280136363637,
+        "max": 15413.424346153846
+      },
+      "p95LatencyMs": {
+        "mean": 2005.5,
+        "min": 2005,
+        "max": 2006
+      },
+      "ordersSucceeded": {
+        "mean": 49.5,
+        "min": 49,
+        "max": 50
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 14064.288352631578,
+        "min": 13527.9846,
+        "max": 14600.592105263158
+      },
+      "p95LatencyMs": {
+        "mean": 2006.5,
+        "min": 2006,
+        "max": 2007
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "61657a9b-b828-4d9d-a0ea-f61edcc6d6e8",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 64851,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 59,
+          "deadLettered": 1,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 21,
+          "overchargedAmount": 2300,
+          "retrySuccessRate": 0.9629629629629629,
+          "avgRecoveryMs": 15413.424346153846,
+          "avgLatencyMs": 594.0761904761905,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 13527.9846,
+          "avgLatencyMs": 496.7671232876712,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 21,
+          "overchargedAmountDelta": 2300,
+          "ordersSucceededDelta": 1,
+          "deadLetteredDelta": 1,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "d35a500f-8093-49d2-8d67-1de786244597",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 44958,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 60,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 15,
+          "overchargedAmount": 1800,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 9528.280136363637,
+          "avgLatencyMs": 367.98924731182797,
+          "p95LatencyMs": 2005,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 14600.592105263158,
+          "avgLatencyMs": 614.5138888888889,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 15,
+          "overchargedAmountDelta": 1800,
+          "ordersSucceededDelta": 0,
+          "deadLetteredDelta": 0,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  },
+  {
+    "category": "Retry Base Delay",
+    "label": "Retry Base Delay 1000ms",
+    "params": {
+      "bankReadTimeoutMs": 2000,
+      "reconcileGraceMs": 6000,
+      "retryBaseDelayMs": 1000,
+      "retryMaxAttempts": 4
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 18.5,
+        "min": 16,
+        "max": 21
+      },
+      "overcharged": {
+        "mean": 2200,
+        "min": 2200,
+        "max": 2200
+      },
+      "recoveryMs": {
+        "mean": 14831.11172,
+        "min": 13780.67344,
+        "max": 15881.55
+      },
+      "p95LatencyMs": {
+        "mean": 2006.025,
+        "min": 2005.05,
+        "max": 2007
+      },
+      "ordersSucceeded": {
+        "mean": 49,
+        "min": 49,
+        "max": 49
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 14942.016003968252,
+        "min": 12657.469285714285,
+        "max": 17226.56272222222
+      },
+      "p95LatencyMs": {
+        "mean": 2006.5,
+        "min": 2006,
+        "max": 2007
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "f2eeb9ed-6fb4-4df1-a8cd-8f28af3fa532",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 52199,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 58,
+          "deadLettered": 2,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 16,
+          "overchargedAmount": 2200,
+          "retrySuccessRate": 0.9393939393939394,
+          "avgRecoveryMs": 15881.55,
+          "avgLatencyMs": 567.5384615384615,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 12657.469285714285,
+          "avgLatencyMs": 495.95384615384614,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 16,
+          "overchargedAmountDelta": 2200,
+          "ordersSucceededDelta": 1,
+          "deadLetteredDelta": 2,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "d22df6c7-2598-412f-84b8-2973d1c358ef",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 57185,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 59,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 21,
+          "overchargedAmount": 2200,
+          "retrySuccessRate": 0.9615384615384616,
+          "avgRecoveryMs": 13780.67344,
+          "avgLatencyMs": 563.13,
+          "p95LatencyMs": 2005.05,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 17226.56272222222,
+          "avgLatencyMs": 670.0933333333334,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 21,
+          "overchargedAmountDelta": 2200,
+          "ordersSucceededDelta": 1,
+          "deadLetteredDelta": 0,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  },
+  {
+    "category": "Max Attempts",
+    "label": "Max Attempts = 2",
+    "params": {
+      "bankReadTimeoutMs": 2000,
+      "reconcileGraceMs": 6000,
+      "retryBaseDelayMs": 500,
+      "retryMaxAttempts": 2
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 12.5,
+        "min": 10,
+        "max": 15
+      },
+      "overcharged": {
+        "mean": 1550,
+        "min": 1300,
+        "max": 1800
+      },
+      "recoveryMs": {
+        "mean": 13230.627271428571,
+        "min": 10563.929733333332,
+        "max": 15897.32480952381
+      },
+      "p95LatencyMs": {
+        "mean": 2006.125,
+        "min": 2006,
+        "max": 2006.25
+      },
+      "ordersSucceeded": {
+        "mean": 39,
+        "min": 36,
+        "max": 42
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 15741.367197916668,
+        "min": 14836.6940625,
+        "max": 16646.040333333334
+      },
+      "p95LatencyMs": {
+        "mean": 2006.15,
+        "min": 2005.75,
+        "max": 2006.55
+      },
+      "ordersSucceeded": {
+        "mean": 47.5,
+        "min": 46,
+        "max": 49
+      }
+    },
+    "runs": [
+      {
+        "id": "115f1423-4bb3-495e-8d6e-e543d7f9d3d9",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 44537,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 50,
+          "deadLettered": 10,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 10,
+          "overchargedAmount": 1300,
+          "retrySuccessRate": 0.6,
+          "avgRecoveryMs": 10563.929733333332,
+          "avgLatencyMs": 520.9176470588235,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 42,
+          "ordersFailed": 8
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 46,
+          "deadLettered": 4,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 0.6923076923076923,
+          "avgRecoveryMs": 16646.040333333334,
+          "avgLatencyMs": 579.5151515151515,
+          "p95LatencyMs": 2005.75,
+          "ordersSucceeded": 46,
+          "ordersFailed": 4
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 10,
+          "overchargedAmountDelta": 1300,
+          "ordersSucceededDelta": 4,
+          "deadLetteredDelta": 6,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "4a365471-8377-41ab-8a4f-5bac4ae53ce2",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 48109,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 45,
+          "deadLettered": 15,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 15,
+          "overchargedAmount": 1800,
+          "retrySuccessRate": 0.5833333333333334,
+          "avgRecoveryMs": 15897.32480952381,
+          "avgLatencyMs": 691.0520833333334,
+          "p95LatencyMs": 2006.25,
+          "ordersSucceeded": 36,
+          "ordersFailed": 14
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 49,
+          "deadLettered": 1,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 0.9411764705882353,
+          "avgRecoveryMs": 14836.6940625,
+          "avgLatencyMs": 574.9714285714285,
+          "p95LatencyMs": 2006.55,
+          "ordersSucceeded": 49,
+          "ordersFailed": 1
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 15,
+          "overchargedAmountDelta": 1800,
+          "ordersSucceededDelta": 13,
+          "deadLetteredDelta": 14,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  },
+  {
+    "category": "Max Attempts",
+    "label": "Max Attempts = 6",
+    "params": {
+      "bankReadTimeoutMs": 2000,
+      "reconcileGraceMs": 6000,
+      "retryBaseDelayMs": 500,
+      "retryMaxAttempts": 6
+    },
+    "naive": {
+      "duplicateOrders": {
+        "mean": 18,
+        "min": 17,
+        "max": 19
+      },
+      "overcharged": {
+        "mean": 2600,
+        "min": 2600,
+        "max": 2600
+      },
+      "recoveryMs": {
+        "mean": 16530.263171874998,
+        "min": 15551.436,
+        "max": 17509.09034375
+      },
+      "p95LatencyMs": {
+        "mean": 2006,
+        "min": 2006,
+        "max": 2006
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "protected": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overcharged": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "recoveryMs": {
+        "mean": 16425.480821428573,
+        "min": 15900.855142857143,
+        "max": 16950.1065
+      },
+      "p95LatencyMs": {
+        "mean": 2006.5,
+        "min": 2006,
+        "max": 2007
+      },
+      "ordersSucceeded": {
+        "mean": 50,
+        "min": 50,
+        "max": 50
+      }
+    },
+    "runs": [
+      {
+        "id": "d733dc31-366f-4517-a428-2058ddb96659",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 70919,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 60,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 19,
+          "overchargedAmount": 2600,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 15551.436,
+          "avgLatencyMs": 553.1166666666667,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 16950.1065,
+          "avgLatencyMs": 643.4583333333334,
+          "p95LatencyMs": 2007,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 19,
+          "overchargedAmountDelta": 2600,
+          "ordersSucceededDelta": 0,
+          "deadLetteredDelta": 0,
+          "stuckUnknownDelta": 0
+        }
+      },
+      {
+        "id": "f5b84bac-817e-48c6-86ef-867805e81372",
+        "status": "DONE",
+        "errorMessage": null,
+        "durationMs": 64935,
+        "config": {
+          "count": 50,
+          "concurrency": 10,
+          "duplicateSubmitRate": 0.2,
+          "chaos": {
+            "timeoutRate": 0.3,
+            "errorRate": 0.1,
+            "channelFailureRate": 0.05,
+            "chargeOnTimeoutProbability": 0.5,
+            "latencyMs": 100
+          }
+        },
+        "naive": {
+          "orders": 50,
+          "paymentsCreated": 60,
+          "success": 60,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 17,
+          "overchargedAmount": 2600,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 17509.09034375,
+          "avgLatencyMs": 652.5438596491229,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "protectedMode": {
+          "orders": 50,
+          "paymentsCreated": 50,
+          "success": 50,
+          "deadLettered": 0,
+          "stuckUnknown": 0,
+          "duplicateOrdersCount": 0,
+          "overchargedAmount": 0,
+          "retrySuccessRate": 1,
+          "avgRecoveryMs": 15900.855142857143,
+          "avgLatencyMs": 621.6029411764706,
+          "p95LatencyMs": 2006,
+          "ordersSucceeded": 50,
+          "ordersFailed": 0
+        },
+        "delta": {
+          "paymentsCreatedDelta": 10,
+          "duplicateOrdersDelta": 17,
+          "overchargedAmountDelta": 2600,
+          "ordersSucceededDelta": 0,
+          "deadLetteredDelta": 0,
+          "stuckUnknownDelta": 0
+        }
+      }
+    ]
+  }
+]

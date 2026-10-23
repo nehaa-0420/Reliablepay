@@ -1,0 +1,29 @@
+server:
+  port: ${PORT:8081}
+spring:
+  application:
+    name: mock-bank
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:${JDBC_DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:reliablepay}}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: bank
+  flyway:
+    enabled: true
+    schemas: bank
+    default-schema: bank
+    create-schemas: true
+    fail-on-missing-locations: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+app:
+  admin-token: ${ADMIN_TOKEN:}

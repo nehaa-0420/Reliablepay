@@ -1,0 +1,230 @@
+{
+  "label": "Baseline-100",
+  "config": {
+    "count": 100,
+    "concurrency": 10,
+    "duplicateSubmitRate": 0.2,
+    "timeoutRate": 0.3,
+    "errorRate": 0.1,
+    "channelFailureRate": 0.05,
+    "latencyMs": 100,
+    "repetitions": 3
+  },
+  "stats": {
+    "naive": {
+      "duplicateOrders": {
+        "mean": 34,
+        "min": 33,
+        "max": 35
+      },
+      "overchargedAmount": {
+        "mean": 4733.33,
+        "min": 4200,
+        "max": 5100
+      },
+      "retrySuccessRate": {
+        "mean": 90.38,
+        "min": 89.47,
+        "max": 92
+      },
+      "avgRecoveryMs": {
+        "mean": 29451,
+        "min": 27020.62,
+        "max": 31037.84
+      },
+      "avgLatencyMs": {
+        "mean": 626.69,
+        "min": 599.25,
+        "max": 646.31
+      },
+      "p95LatencyMs": {
+        "mean": 2006.42,
+        "min": 2006,
+        "max": 2007.25
+      },
+      "ordersSucceeded": {
+        "mean": 96,
+        "min": 95,
+        "max": 97
+      },
+      "durationMs": {
+        "mean": 82309.33,
+        "min": 75352,
+        "max": 88820
+      }
+    },
+    "protectedMode": {
+      "duplicateOrders": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "overchargedAmount": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "retrySuccessRate": {
+        "mean": 98.48,
+        "min": 95.45,
+        "max": 100
+      },
+      "avgRecoveryMs": {
+        "mean": 21985.06,
+        "min": 19376.9,
+        "max": 24219.32
+      },
+      "avgLatencyMs": {
+        "mean": 547.54,
+        "min": 504.32,
+        "max": 582.85
+      },
+      "p95LatencyMs": {
+        "mean": 2006.55,
+        "min": 2006,
+        "max": 2007.65
+      },
+      "ordersSucceeded": {
+        "mean": 99.67,
+        "min": 99,
+        "max": 100
+      },
+      "durationMs": {
+        "mean": 82309.33,
+        "min": 75352,
+        "max": 88820
+      }
+    }
+  },
+  "runs": [
+    {
+      "repetition": 1,
+      "experimentId": "effb3564-49fd-439a-b869-82869d91cb92",
+      "durationMs": 75352,
+      "naive": {
+        "orders": 100,
+        "paymentsCreated": 120,
+        "success": 114,
+        "deadLettered": 6,
+        "stuckUnknown": 0,
+        "duplicateOrdersCount": 35,
+        "overchargedAmount": 4900,
+        "retrySuccessRate": 0.8947368421052632,
+        "avgRecoveryMs": 31037.835725490197,
+        "avgLatencyMs": 634.4907407407408,
+        "p95LatencyMs": 2007.25,
+        "ordersSucceeded": 96,
+        "ordersFailed": 4
+      },
+      "protectedMode": {
+        "orders": 100,
+        "paymentsCreated": 100,
+        "success": 100,
+        "deadLettered": 0,
+        "stuckUnknown": 0,
+        "duplicateOrdersCount": 0,
+        "overchargedAmount": 0,
+        "retrySuccessRate": 1,
+        "avgRecoveryMs": 19376.89788,
+        "avgLatencyMs": 504.3203125,
+        "p95LatencyMs": 2007.65,
+        "ordersSucceeded": 100,
+        "ordersFailed": 0
+      },
+      "delta": {
+        "paymentsCreatedDelta": 20,
+        "duplicateOrdersDelta": 35,
+        "overchargedAmountDelta": 4900,
+        "ordersSucceededDelta": 4,
+        "deadLetteredDelta": 6,
+        "stuckUnknownDelta": 0
+      }
+    },
+    {
+      "repetition": 2,
+      "experimentId": "036b7bda-c643-4c69-9b0c-442c11e05c3c",
+      "durationMs": 88820,
+      "naive": {
+        "orders": 100,
+        "paymentsCreated": 120,
+        "success": 114,
+        "deadLettered": 6,
+        "stuckUnknown": 0,
+        "duplicateOrdersCount": 34,
+        "overchargedAmount": 5100,
+        "retrySuccessRate": 0.896551724137931,
+        "avgRecoveryMs": 30294.547230769233,
+        "avgLatencyMs": 646.3122171945702,
+        "p95LatencyMs": 2006,
+        "ordersSucceeded": 95,
+        "ordersFailed": 5
+      },
+      "protectedMode": {
+        "orders": 100,
+        "paymentsCreated": 100,
+        "success": 100,
+        "deadLettered": 0,
+        "stuckUnknown": 0,
+        "duplicateOrdersCount": 0,
+        "overchargedAmount": 0,
+        "retrySuccessRate": 1,
+        "avgRecoveryMs": 22358.97671875,
+        "avgLatencyMs": 555.448275862069,
+        "p95LatencyMs": 2006,
+        "ordersSucceeded": 100,
+        "ordersFailed": 0
+      },
+      "delta": {
+        "paymentsCreatedDelta": 20,
+        "duplicateOrdersDelta": 34,
+        "overchargedAmountDelta": 5100,
+        "ordersSucceededDelta": 5,
+        "deadLetteredDelta": 6,
+        "stuckUnknownDelta": 0
+      }
+    },
+    {
+      "repetition": 3,
+      "experimentId": "940ff704-8162-4c14-afd3-01e058366941",
+      "durationMs": 82756,
+      "naive": {
+        "orders": 100,
+        "paymentsCreated": 120,
+        "success": 116,
+        "deadLettered": 4,
+        "stuckUnknown": 0,
+        "duplicateOrdersCount": 33,
+        "overchargedAmount": 4200,
+        "retrySuccessRate": 0.92,
+        "avgRecoveryMs": 27020.619217391304,
+        "avgLatencyMs": 599.2525252525253,
+        "p95LatencyMs": 2006,
+        "ordersSucceeded": 97,
+        "ordersFailed": 3
+      },
+      "protectedMode": {
+        "orders": 100,
+        "paymentsCreated": 100,
+        "success": 99,
+        "deadLettered": 1,
+        "stuckUnknown": 0,
+        "duplicateOrdersCount": 0,
+        "overchargedAmount": 0,
+        "retrySuccessRate": 0.9545454545454546,
+        "avgRecoveryMs": 24219.316,
+        "avgLatencyMs": 582.8478260869565,
+        "p95LatencyMs": 2006,
+        "ordersSucceeded": 99,
+        "ordersFailed": 1
+      },
+      "delta": {
+        "paymentsCreatedDelta": 20,
+        "duplicateOrdersDelta": 33,
+        "overchargedAmountDelta": 4200,
+        "ordersSucceededDelta": 2,
+        "deadLetteredDelta": 3,
+        "stuckUnknownDelta": 0
+      }
+    }
+  ]
+}

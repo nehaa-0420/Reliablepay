@@ -1,0 +1,84 @@
+databases:
+  - name: reliablepay-db
+    plan: free
+    databaseName: reliablepay
+    user: reliablepay
+
+services:
+  - type: web
+    name: reliablepay-mock-bank
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/mock-bank/Dockerfile
+    dockerContext: ./backend/mock-bank
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reliablepay-db
+          property: connectionString
+      - key: DB_HOST
+        fromDatabase:
+          name: reliablepay-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: reliablepay-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: reliablepay-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: reliablepay-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: reliablepay-db
+          property: password
+      - key: ADMIN_TOKEN
+        sync: false
+
+  - type: web
+    name: reliablepay-payment-service
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/payment-service/Dockerfile
+    dockerContext: ./backend/payment-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reliablepay-db
+          property: connectionString
+      - key: DB_HOST
+        fromDatabase:
+          name: reliablepay-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: reliablepay-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: reliablepay-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: reliablepay-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: reliablepay-db
+          property: password
+      - key: BANK_BASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: ADMIN_RESET_ENABLED
+        value: "true"
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: REDIS_ENABLED
+        value: "false"
