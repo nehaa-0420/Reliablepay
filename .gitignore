@@ -23,4 +23,4 @@ yarn-error.log*
 .vscode/
 *.zip
 .temp/
-
+.attach_pid*
