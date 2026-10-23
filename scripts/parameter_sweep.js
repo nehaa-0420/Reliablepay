@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BASE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:8080';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'demo-secret-123';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 const DEFAULTS = {
     bankReadTimeoutMs: 2000,

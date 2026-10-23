@@ -31,7 +31,7 @@ const latencyMs = parseInt(getArg('--latencyMs', '100'), 10);
 const repetitions = parseInt(getArg('--repetitions', '3'), 10);
 const label = getArg('--label', 'Baseline-100');
 const baseUrl = getArg('--baseUrl', 'http://localhost:8080');
-const adminToken = getArg('--adminToken', process.env.ADMIN_TOKEN || 'demo-secret-123');
+const adminToken = getArg('--adminToken', process.env.ADMIN_TOKEN || '');
 
 console.log('='.repeat(70));
 console.log(`ReliablePay Benchmark: ${label}`);
