@@ -1,13 +1,32 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import AppShell from './components/layout/AppShell';
 import ColdStartBanner from './components/ColdStartBanner';
-import LandingPage from './pages/LandingPage';
-import DashboardPage from './pages/DashboardPage';
-import ChaosLabPage from './pages/ChaosLabPage';
-import ComparePage from './pages/ComparePage';
-import NotFoundPage from './pages/NotFoundPage';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import Skeleton from './components/ui/Skeleton';
 import api from './api/client';
+
+// Route-level code splitting with React.lazy
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ChaosLabPage = lazy(() => import('./pages/ChaosLabPage'));
+const ComparePage = lazy(() => import('./pages/ComparePage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
+function PageLoadingFallback() {
+  return (
+    <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <Skeleton variant="rect" height="60px" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <Skeleton variant="rect" height="100px" />
+        <Skeleton variant="rect" height="100px" />
+        <Skeleton variant="rect" height="100px" />
+      </div>
+      <Skeleton variant="rect" height="320px" />
+    </div>
+  );
+}
 
 export default function App() {
   const [healthStatus, setHealthStatus] = useState('CHECKING');
@@ -58,17 +77,14 @@ export default function App() {
       }
     };
 
-    // First check
     checkHealth();
 
-    // Set a timer to check if it's taking >3s
     const coldTimer = setTimeout(() => {
       if (healthStatus !== 'UP') {
         setShowColdStart(true);
       }
     }, 3000);
 
-    // Periodic check every 10s
     const interval = setInterval(checkHealth, 10000);
 
     return () => {
@@ -79,24 +95,29 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <div className="app-layout">
-        <Navbar healthStatus={healthStatus} />
-        <ColdStartBanner
-          visible={showColdStart}
-          onDismiss={() => setShowColdStart(false)}
-        />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/lab" element={<ChaosLabPage />} />
-            <Route path="/compare/:id" element={<ComparePage />} />
-            <Route path="/compare" element={<ComparePage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <ThemeProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <div className="app-root">
+            <ColdStartBanner
+              visible={showColdStart}
+              onDismiss={() => setShowColdStart(false)}
+            />
+            <AppShell healthStatus={healthStatus}>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/lab" element={<ChaosLabPage />} />
+                  <Route path="/compare/:id" element={<ComparePage />} />
+                  <Route path="/compare" element={<ComparePage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Suspense>
+            </AppShell>
+          </div>
+        </BrowserRouter>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
