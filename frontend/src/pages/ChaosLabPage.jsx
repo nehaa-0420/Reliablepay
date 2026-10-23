@@ -1,9 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Flame,
+  Zap,
+  Sliders,
+  Play,
+  RotateCcw,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  ArrowRight,
+  ShieldAlert,
+  Server,
+  Layers,
+  Sparkles,
+  Loader2
+} from 'lucide-react';
 import api from '../api/client';
+import Card, { CardHeader, CardBody } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Slider from '../components/ui/Slider';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import ProgressSteps from '../components/ui/ProgressSteps';
+import { useToast } from '../context/ToastContext';
 
 export default function ChaosLabPage() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   // Chaos config state
   const [chaos, setChaos] = useState({
@@ -15,7 +40,6 @@ export default function ChaosLabPage() {
   });
   const [chaosLoading, setChaosLoading] = useState(true);
   const [chaosApplying, setChaosApplying] = useState(false);
-  const [chaosSuccessMsg, setChaosSuccessMsg] = useState('');
 
   // Experiment state
   const [expConfig, setExpConfig] = useState({
@@ -24,15 +48,44 @@ export default function ChaosLabPage() {
     duplicateSubmitRate: 0.2
   });
   const [activeExpId, setActiveExpId] = useState(null);
-  const [expStatus, setExpStatus] = useState(null);
+  const [expStatus, setExpStatus] = useState(null); // 'RUNNING' | 'DONE' | 'FAILED'
+  const [expPhase, setExpPhase] = useState(0); // 0: Naive, 1: Protected, 2: Done
   const [expDurationMs, setExpDurationMs] = useState(0);
-  const [expError, setExpError] = useState(null);
   const [startingExp, setStartingExp] = useState(false);
+  const [expError, setExpError] = useState(null);
+
+  // Timer for active experiment
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef(null);
 
   // Reset modal state
   const [showResetModal, setShowResetModal] = useState(false);
+  const [resetConfirmInput, setResetConfirmInput] = useState('');
   const [resetting, setResetting] = useState(false);
-  const [resetMsg, setResetMsg] = useState('');
+
+  // Presets
+  const presets = [
+    {
+      name: 'Calm',
+      desc: 'Normal network conditions',
+      config: { timeoutRate: 0.0, errorRate: 0.0, channelFailureRate: 0.0, chargeOnTimeoutProbability: 0.5, latencyMs: 0 }
+    },
+    {
+      name: 'Flaky',
+      desc: '10% gateway HTTP 500 errors',
+      config: { timeoutRate: 0.0, errorRate: 0.1, channelFailureRate: 0.0, chargeOnTimeoutProbability: 0.5, latencyMs: 0 }
+    },
+    {
+      name: 'Timeout storm',
+      desc: '40% socket timeouts during transmission',
+      config: { timeoutRate: 0.4, errorRate: 0.0, channelFailureRate: 0.0, chargeOnTimeoutProbability: 0.5, latencyMs: 2500 }
+    },
+    {
+      name: 'Demo (Recommended)',
+      desc: '30% timeouts + 10% errors + 500ms latency',
+      config: { timeoutRate: 0.3, errorRate: 0.1, channelFailureRate: 0.0, chargeOnTimeoutProbability: 0.5, latencyMs: 500 }
+    }
+  ];
 
   // Fetch chaos config on mount
   useEffect(() => {
@@ -56,6 +109,12 @@ export default function ChaosLabPage() {
   useEffect(() => {
     if (!activeExpId) return;
 
+    // Start timer counter
+    setElapsedSeconds(0);
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+
     let isMounted = true;
     const interval = setInterval(async () => {
       try {
@@ -67,16 +126,27 @@ export default function ChaosLabPage() {
           setExpDurationMs(res.durationMs);
         }
 
+        // Infer phase from presence of results
         if (res.status === 'DONE') {
+          setExpPhase(2);
           clearInterval(interval);
+          if (timerRef.current) clearInterval(timerRef.current);
           try {
             localStorage.setItem('latest_experiment_id', activeExpId);
           } catch (e) {
-            console.warn('Could not store latest_experiment_id in localStorage', e);
+            // ignore
           }
+          toast.success('Benchmark run complete! Results ready to inspect.');
         } else if (res.status === 'FAILED') {
+          setExpPhase(0);
           clearInterval(interval);
-          setExpError(res.errorMessage || 'Experiment execution failed');
+          if (timerRef.current) clearInterval(timerRef.current);
+          setExpError(res.errorMessage || 'Experiment execution encountered an unexpected error');
+          toast.error(res.errorMessage || 'Experiment execution failed');
+        } else if (res.naive && (!res.protectedMode || Object.keys(res.protectedMode).length === 0)) {
+          setExpPhase(1); // Protected run in progress
+        } else {
+          setExpPhase(0); // Naive run in progress
         }
       } catch (err) {
         console.error('Error polling experiment', err);
@@ -86,6 +156,7 @@ export default function ChaosLabPage() {
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [activeExpId]);
 
@@ -93,49 +164,46 @@ export default function ChaosLabPage() {
   const handleApplyChaos = async (e) => {
     e.preventDefault();
     setChaosApplying(true);
-    setChaosSuccessMsg('');
     try {
-      const updated = await api.updateChaosConfig(chaos);
-      setChaosSuccessMsg('✓ Chaos parameters applied to mock bank successfully!');
-      setTimeout(() => setChaosSuccessMsg(''), 4000);
+      await api.updateChaosConfig(chaos);
+      toast.success('Chaos parameters successfully applied to Mock Bank gateway!');
     } catch (err) {
-      alert('Failed to update chaos config: ' + err.message);
+      toast.error(err.message || 'Failed to update chaos settings');
     } finally {
       setChaosApplying(false);
     }
   };
 
-  // Launch Experiment
-  const handleRunExperiment = async () => {
+  const handleApplyPreset = (preset) => {
+    setChaos(preset.config);
+    api.updateChaosConfig(preset.config)
+      .then(() => toast.success(`Applied "${preset.name}" profile to bank gateway!`))
+      .catch((err) => toast.error(err.message || 'Failed to apply preset'));
+  };
+
+  // Run Experiment
+  const handleRunExperiment = async (overrideCount) => {
+    const runConfig = {
+      ...expConfig,
+      count: overrideCount || expConfig.count
+    };
+
     setStartingExp(true);
     setExpError(null);
     setExpStatus('RUNNING');
-    setExpDurationMs(0);
-
-    const payload = {
-      count: parseInt(expConfig.count, 10),
-      concurrency: parseInt(expConfig.concurrency, 10),
-      duplicateSubmitRate: parseFloat(expConfig.duplicateSubmitRate),
-      chaos: {
-        timeoutRate: parseFloat(chaos.timeoutRate),
-        errorRate: parseFloat(chaos.errorRate),
-        channelFailureRate: parseFloat(chaos.channelFailureRate),
-        chargeOnTimeoutProbability: parseFloat(chaos.chargeOnTimeoutProbability),
-        latencyMs: parseInt(chaos.latencyMs, 10)
-      }
-    };
+    setExpPhase(0);
 
     try {
-      const res = await api.runExperiment(payload);
-      setActiveExpId(res.experimentId);
-      try {
-        localStorage.setItem('latest_experiment_id', res.experimentId);
-      } catch (e) {}
+      const res = await api.runExperiment(runConfig);
+      setActiveExpId(res.id);
+      toast.info(`Benchmark experiment #${res.id.substring(0, 8)} started!`);
     } catch (err) {
       if (err.status === 409) {
-        setExpError('An experiment is already in progress. Please wait for it to complete or reset data.');
+        setExpError('Another experiment is already running. Please wait for it to complete.');
+        toast.warning('Experiment in progress: System currently running another benchmark.');
       } else {
-        setExpError(err.message || 'Failed to start experiment');
+        setExpError(err.message || 'Failed to trigger experiment');
+        toast.error(err.message || 'Failed to start experiment');
       }
       setExpStatus(null);
     } finally {
@@ -143,350 +211,319 @@ export default function ChaosLabPage() {
     }
   };
 
-  // Apply Presets
-  const applyPreset = (preset) => {
-    if (preset === 'quick') {
-      setExpConfig({ count: 60, concurrency: 10, duplicateSubmitRate: 0.2 });
-      setChaos((prev) => ({ ...prev, timeoutRate: 0.3, errorRate: 0.1, channelFailureRate: 0.0 }));
-    } else if (preset === 'full') {
-      setExpConfig({ count: 200, concurrency: 10, duplicateSubmitRate: 0.2 });
-      setChaos((prev) => ({ ...prev, timeoutRate: 0.3, errorRate: 0.1, channelFailureRate: 0.0 }));
+  // Handle Reset System Data
+  const handleResetSystem = async () => {
+    if (resetConfirmInput.trim() !== 'RESET') {
+      toast.error('Please type RESET to confirm');
+      return;
     }
-  };
 
-  // Handle Admin Reset
-  const handleConfirmReset = async () => {
     setResetting(true);
     try {
       await api.resetSystem();
-      setResetMsg('System successfully reset! Cleared all payments, events, idempotency keys, and mock bank charges.');
       setShowResetModal(false);
-      setActiveExpId(null);
-      setExpStatus(null);
-      setTimeout(() => setResetMsg(''), 5000);
+      setResetConfirmInput('');
+      toast.success('System reset complete: All payments and bank charges purged.');
     } catch (err) {
-      alert('Failed to reset system: ' + err.message);
+      toast.error(err.message || 'Reset failed');
     } finally {
       setResetting(false);
     }
   };
 
+  const isRunning = expStatus === 'RUNNING';
+
+  const experimentSteps = [
+    {
+      title: 'Phase 1: NAIVE Baseline Run',
+      description: 'Dispatches payments without Idempotency-Keys or atomic guards to measure raw double-charges.',
+      loading: isRunning && expPhase === 0
+    },
+    {
+      title: 'Phase 2: PROTECTED Engine Run',
+      description: 'Dispatches identical workload through the transactional state machine and retry reconciler.',
+      loading: isRunning && expPhase === 1
+    },
+    {
+      title: 'Phase 3: Analysis & Delta Computation',
+      description: 'Ledgers compared, prevented double debits calculated, and audit verification finalized.',
+      loading: isRunning && expPhase === 2
+    }
+  ];
+
   return (
-    <div className="chaos-lab-page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+    <div className="chaos-lab-view" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--primary-900)', letterSpacing: '-0.02em' }}>
-            Chaos Engineering & Experiment Lab
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '9999px', background: 'var(--status-retrying-light)', color: 'var(--status-retrying-dark)', fontSize: '0.78rem', fontWeight: 700, marginBottom: '8px' }}>
+            <Flame size={14} />
+            <span>Chaos Engineering & Fault Injection</span>
+          </div>
+          <h1 style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
+            Mock Bank Chaos Lab
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Inject downstream network failures and run comparative NAIVE vs. PROTECTED stress tests.
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '4px' }}>
+            Inject latency, socket timeouts, and HTTP errors into upstream gateway to benchmark reliability.
           </p>
         </div>
+      </div>
 
-        <div>
-          <button
-            className="btn btn-danger btn-sm"
-            onClick={() => setShowResetModal(true)}
-          >
-            🗑️ Reset System Data
-          </button>
+      {/* Preset Chips */}
+      <div>
+        <div style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '12px' }}>
+          Network Chaos Profiles
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {presets.map((preset) => (
+            <button
+              key={preset.name}
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={isRunning}
+              onClick={() => handleApplyPreset(preset)}
+              style={{ padding: '8px 14px', borderRadius: '10px' }}
+            >
+              <Zap size={14} className="text-accent" />
+              <span>{preset.name}</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                ({preset.desc})
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {resetMsg && (
-        <div style={{ marginBottom: '20px', padding: '14px 18px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600 }}>
-          {resetMsg}
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 420px) 1fr', gap: '24px', alignItems: 'start' }}>
-        {/* Chaos Configuration Card */}
-        <div className="card">
-          <h2 className="card-title">Bank Chaos Parameters</h2>
-          <p className="card-subtitle">Real-time fault injection at the mock bank</p>
-
-          <form onSubmit={handleApplyChaos}>
-            {/* Timeout Rate */}
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <label className="form-label">Timeout Rate (Read Timeout)</label>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent-600)' }}>
-                  {Math.round(chaos.timeoutRate * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
+      {/* Main Grid: Chaos Parameter Sliders & Benchmark Runner */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 440px) 1fr', gap: '28px', alignItems: 'start' }}>
+        {/* Chaos Sliders Form */}
+        <Card elevated>
+          <CardHeader
+            title="Gateway Fault Parameters"
+            subtitle="Configure upstream simulated bank behavior"
+            action={<Sliders size={18} className="text-muted" />}
+          />
+          <CardBody>
+            <form onSubmit={handleApplyChaos} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <Slider
+                label="Timeout Probability"
                 value={chaos.timeoutRate}
-                onChange={(e) => setChaos({ ...chaos, timeoutRate: parseFloat(e.target.value) })}
-                style={{ width: '100%', accentColor: 'var(--accent-600)' }}
+                min={0}
+                max={0.8}
+                step={0.05}
+                formatValue={(v) => `${Math.round(v * 100)}%`}
+                description="Chance that bank hangs for 2.5s and drops TCP connection."
+                disabled={isRunning}
+                onChange={(v) => setChaos({ ...chaos, timeoutRate: v })}
               />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Simulates 2,000ms socket timeout (triggers UNKNOWN outcome)
-              </span>
-            </div>
 
-            {/* Error Rate */}
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <label className="form-label">Server Error Rate (500)</label>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#ef4444' }}>
-                  {Math.round(chaos.errorRate * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
+              <Slider
+                label="HTTP 500 Error Rate"
                 value={chaos.errorRate}
-                onChange={(e) => setChaos({ ...chaos, errorRate: parseFloat(e.target.value) })}
-                style={{ width: '100%', accentColor: '#ef4444' }}
+                min={0}
+                max={0.5}
+                step={0.05}
+                formatValue={(v) => `${Math.round(v * 100)}%`}
+                description="Immediate Internal Server Error responses from bank."
+                disabled={isRunning}
+                onChange={(v) => setChaos({ ...chaos, errorRate: v })}
               />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Simulates internal banking server crash
-              </span>
-            </div>
 
-            {/* Channel Failure Rate */}
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <label className="form-label">Channel Drop Rate (503)</label>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#f59e0b' }}>
-                  {Math.round(chaos.channelFailureRate * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={chaos.channelFailureRate}
-                onChange={(e) => setChaos({ ...chaos, channelFailureRate: parseFloat(e.target.value) })}
-                style={{ width: '100%', accentColor: '#f59e0b' }}
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Simulates payment rail gateway disconnection
-              </span>
-            </div>
-
-            {/* Charge On Timeout Probability */}
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <label className="form-label">Charge On Timeout Probability</label>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--primary-800)' }}>
-                  {Math.round(chaos.chargeOnTimeoutProbability * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={chaos.chargeOnTimeoutProbability}
-                onChange={(e) => setChaos({ ...chaos, chargeOnTimeoutProbability: parseFloat(e.target.value) })}
-                style={{ width: '100%' }}
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Probability that bank debits funds before timing out
-              </span>
-            </div>
-
-            {/* Injected Latency */}
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <label className="form-label">Added Latency (ms)</label>
-                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                  {chaos.latencyMs} ms
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="3000"
-                step="100"
+              <Slider
+                label="Simulated Network Latency"
                 value={chaos.latencyMs}
-                onChange={(e) => setChaos({ ...chaos, latencyMs: parseInt(e.target.value, 10) })}
-                style={{ width: '100%' }}
+                min={0}
+                max={2500}
+                step={100}
+                formatValue={(v) => `${v} ms`}
+                description="Artificial sleep injected into all bank gateway operations."
+                disabled={isRunning}
+                onChange={(v) => setChaos({ ...chaos, latencyMs: v })}
               />
-            </div>
 
-            <button
-              type="submit"
-              className="btn btn-secondary"
-              disabled={chaosApplying}
-              style={{ width: '100%', marginTop: '10px' }}
-            >
-              {chaosApplying ? 'Applying...' : 'Apply Chaos Settings'}
-            </button>
+              <Slider
+                label="Charge on Timeout Probability"
+                value={chaos.chargeOnTimeoutProbability}
+                min={0}
+                max={1.0}
+                step={0.1}
+                formatValue={(v) => `${Math.round(v * 100)}%`}
+                description="Real-world ambiguity: Did the bank debit money before the connection dropped?"
+                disabled={isRunning}
+                onChange={(v) => setChaos({ ...chaos, chargeOnTimeoutProbability: v })}
+              />
 
-            {chaosSuccessMsg && (
-              <div style={{ marginTop: '12px', fontSize: '0.85rem', color: '#065f46', background: '#ecfdf5', padding: '8px 12px', borderRadius: '6px', textAlign: 'center' }}>
-                {chaosSuccessMsg}
-              </div>
-            )}
-          </form>
-        </div>
+              <Button
+                type="submit"
+                variant="primary"
+                loading={chaosApplying}
+                disabled={isRunning}
+                style={{ width: '100%', marginTop: '6px' }}
+              >
+                Apply Parameters to Mock Bank
+              </Button>
+            </form>
+          </CardBody>
+        </Card>
 
         {/* Experiment Execution Card */}
-        <div className="card">
-          <h2 className="card-title">Run Comparative Benchmark</h2>
-          <p className="card-subtitle">Executes NAIVE protocol then PROTECTED protocol under identical load</p>
-
-          {/* Presets */}
-          <div style={{ marginBottom: '20px', padding: '14px', background: 'var(--bg-card-subtle)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              Select Experiment Preset
-            </div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className={`btn btn-sm ${expConfig.count === 60 ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => applyPreset('quick')}
-              >
-                ⚡ Quick demo (60 orders)
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${expConfig.count === 200 ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => applyPreset('full')}
-              >
-                🔬 Full Benchmark (200 orders)
-              </button>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Order Count (Max 300)</label>
-              <input
-                type="number"
-                min="10"
-                max="300"
-                className="form-input"
-                value={expConfig.count}
-                onChange={(e) => setExpConfig({ ...expConfig, count: e.target.value })}
-                disabled={expStatus === 'RUNNING'}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Concurrency (Threads)</label>
-              <input
-                type="number"
-                min="1"
-                max="20"
-                className="form-input"
-                value={expConfig.concurrency}
-                onChange={(e) => setExpConfig({ ...expConfig, concurrency: e.target.value })}
-                disabled={expStatus === 'RUNNING'}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Duplicate Submit Rate</label>
-              <select
-                className="form-select"
-                value={expConfig.duplicateSubmitRate}
-                onChange={(e) => setExpConfig({ ...expConfig, duplicateSubmitRate: parseFloat(e.target.value) })}
-                disabled={expStatus === 'RUNNING'}
-              >
-                <option value="0.0">0% (Single submissions only)</option>
-                <option value="0.1">10% double submissions</option>
-                <option value="0.2">20% double submissions (Standard)</option>
-                <option value="0.4">40% double submissions (High race)</option>
-              </select>
-            </div>
-          </div>
-
-          {expError && (
-            <div style={{ marginBottom: '16px', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecdd3', borderRadius: '8px', color: '#991b1b', fontSize: '0.85rem' }}>
-              <strong>Error:</strong> {expError}
-            </div>
-          )}
-
-          {/* Running State Banner */}
-          {expStatus === 'RUNNING' && (
-            <div style={{ margin: '20px 0', padding: '20px', background: 'var(--primary-900)', borderRadius: '12px', color: '#fff', textAlign: 'center' }}>
-              <div style={{ display: 'inline-block', width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'var(--accent-400)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '12px' }}>
-                Benchmark Running...
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--accent-100)', marginTop: '4px' }}>
-                Executing NAIVE mode baseline, then PROTECTED protocol with real-time bank reconciliation.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          <Card elevated>
+            <CardHeader
+              title="Automated Protocol Benchmark"
+              subtitle="Run comparative trial: NAIVE vs. PROTECTED"
+              action={<Layers size={18} className="text-accent" />}
+            />
+            <CardBody>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '24px' }}>
+                Executes two identical workloads under current chaos settings. The system dispatches batch transactions with concurrent duplicate client retries to calculate exact double-debits, overcharge losses, and recovery MTTR.
               </p>
-              <div style={{ marginTop: '12px', fontFamily: 'var(--font-mono)', fontSize: '1.3rem', color: 'var(--accent-400)', fontWeight: 700 }}>
-                Elapsed: {(expDurationMs / 1000).toFixed(1)}s
+
+              {/* Presets Row */}
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                <Button
+                  variant="accent"
+                  size="md"
+                  disabled={isRunning || startingExp}
+                  onClick={() => handleRunExperiment(60)}
+                  icon={Play}
+                >
+                  Run Quick Demo (60 Txns)
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  disabled={isRunning || startingExp}
+                  onClick={() => handleRunExperiment(200)}
+                >
+                  Full Load (200 Txns)
+                </Button>
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
-                Experiment ID: {activeExpId}
-              </span>
-            </div>
-          )}
 
-          {/* Completed State Banner */}
-          {expStatus === 'DONE' && (
-            <div style={{ margin: '20px 0', padding: '20px', background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎉</div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#065f46' }}>
-                Benchmark Completed Successfully!
-              </h3>
-              <p style={{ fontSize: '0.9rem', color: '#047857', marginTop: '4px', marginBottom: '16px' }}>
-                Total duration: {(expDurationMs / 1000).toFixed(1)}s. Both NAIVE and PROTECTED runs have settled.
+              {/* Active Experiment Progress Stepper */}
+              {isRunning && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{ background: 'var(--bg-surface-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '24px', marginBottom: '24px' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Loader2 size={18} className="spin text-accent" />
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        Benchmark Run In Progress...
+                      </span>
+                    </div>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Elapsed: {elapsedSeconds}s
+                    </span>
+                  </div>
+
+                  <ProgressSteps
+                    steps={experimentSteps}
+                    currentStepIndex={expPhase}
+                    orientation="vertical"
+                  />
+                </motion.div>
+              )}
+
+              {/* Completion Banner */}
+              {expStatus === 'DONE' && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  style={{ background: 'var(--status-success-light)', border: '1px solid var(--status-success-border)', borderRadius: '12px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <CheckCircle2 size={24} className="text-success" />
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--status-success-dark)', fontSize: '0.96rem' }}>
+                        Benchmark Execution Completed
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--status-success-dark)', marginTop: '2px' }}>
+                        Both NAIVE and PROTECTED protocols evaluated. Duration: {Math.round(expDurationMs / 1000)}s.
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    size="md"
+                    iconRight={ArrowRight}
+                    onClick={() => navigate(`/compare/${activeExpId}`)}
+                  >
+                    View Protocol Comparison
+                  </Button>
+                </motion.div>
+              )}
+
+              {expError && (
+                <div style={{ padding: '14px', borderRadius: '10px', background: 'var(--status-failed-light)', border: '1px solid var(--status-failed-border)', color: 'var(--status-failed-dark)', fontSize: '0.88rem', marginTop: '16px' }}>
+                  <strong>Notice:</strong> {expError}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Danger Zone Card */}
+          <Card style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+            <CardHeader
+              title="Danger Zone: Environment Reset"
+              subtitle="Purge all payments, idempotency records, and bank ledger charges"
+              action={<ShieldAlert size={18} className="text-danger" />}
+            />
+            <CardBody>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', lineHeight: 1.5, marginBottom: '16px' }}>
+                Cleans all transaction history from the database to establish a fresh baseline before starting a live presentation or evaluation run.
               </p>
-              <button
-                className="btn btn-accent btn-lg"
-                onClick={() => navigate(`/compare/${activeExpId}`)}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowResetModal(true)}
               >
-                📊 View Head-to-Head Comparison →
-              </button>
-            </div>
-          )}
-
-          <div style={{ marginTop: '24px' }}>
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={handleRunExperiment}
-              disabled={startingExp || expStatus === 'RUNNING'}
-              style={{ width: '100%' }}
-            >
-              {expStatus === 'RUNNING' ? 'Running Experiment...' : '🚀 Start Experiment Run'}
-            </button>
-          </div>
+                Reset System Database
+              </Button>
+            </CardBody>
+          </Card>
         </div>
       </div>
 
-      {/* Confirmation Modal for Admin Reset */}
-      {showResetModal && (
-        <div className="modal-backdrop" onClick={() => setShowResetModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#991b1b', marginBottom: '12px' }}>
-              Confirm System Reset
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--primary-700)', lineHeight: 1.6, marginBottom: '20px' }}>
-              Are you sure you want to reset all data? This will truncate all payment records, audit events, attempt counters, idempotency keys, and reset the mock bank charge database.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowResetModal(false)}
-                disabled={resetting}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={handleConfirmReset}
-                disabled={resetting}
-              >
-                {resetting ? 'Resetting...' : 'Yes, Reset Everything'}
-              </button>
-            </div>
+      {/* Reset Confirmation Modal */}
+      <Modal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        title="Confirm System Reset"
+        subtitle="This action is irreversible and purges all recorded transactions."
+        footer={
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Button variant="secondary" size="sm" onClick={() => setShowResetModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={resetting}
+              disabled={resetConfirmInput.trim() !== 'RESET'}
+              onClick={handleResetSystem}
+            >
+              Purge Database
+            </Button>
           </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            Type <strong className="font-mono text-danger">RESET</strong> in the field below to confirm you want to wipe all payments and reset the mock bank ledger:
+          </p>
+          <Input
+            value={resetConfirmInput}
+            onChange={(e) => setResetConfirmInput(e.target.value)}
+            placeholder="Type RESET"
+            mono
+          />
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
