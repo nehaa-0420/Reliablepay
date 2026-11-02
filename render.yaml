@@ -88,3 +88,5 @@ services:
         sync: false
       - key: REDIS_ENABLED
         value: "false"
+      - key: SPRING_PROFILES_ACTIVE
+        value: "production"

@@ -28,6 +28,9 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     @Query(value = "SELECT * FROM payments WHERE status = 'UNKNOWN' AND updated_at <= :threshold ORDER BY updated_at ASC LIMIT :limit FOR UPDATE SKIP LOCKED", nativeQuery = true)
     List<Payment> findDueUnknownPaymentsForUpdate(@Param("threshold") Instant threshold, @Param("limit") int limit);
 
+    @Query(value = "SELECT * FROM payments WHERE status = 'PROCESSING' AND mode = 'PROTECTED' AND updated_at <= :threshold ORDER BY updated_at ASC LIMIT :limit FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    List<Payment> findStaleProcessingPaymentsForUpdate(@Param("threshold") Instant threshold, @Param("limit") int limit);
+
     @Query("SELECT p.status, COUNT(p) FROM Payment p GROUP BY p.status")
     List<Object[]> countByStatusGrouped();
 

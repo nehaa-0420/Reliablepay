@@ -143,3 +143,26 @@ These endpoints require either `Authorization: Bearer <token>` or `X-Admin-Token
 - `GET/PUT /bank/admin/chaos`: Mock-bank chaos controls.
 - `GET /bank/admin/stats`: Aggregate ledger stats (total charges, duplicate debits).
 - `POST /bank/admin/reset`: Clears mock-bank ledger and counters.
+
+---
+
+## 6. Background Asynchronous Workers
+
+ReliablePay executes autonomous background workers to guarantee at-least-once delivery and zero duplicate debits:
+
+### A. PaymentRetryWorker
+- **Schedule**: Fixed delay `app.retry.poll-interval-ms` (default: 1000ms).
+- **Query**: `SELECT * FROM payments WHERE status = 'RETRYING' AND next_retry_at <= :now ORDER BY next_retry_at ASC LIMIT :limit FOR UPDATE SKIP LOCKED`.
+- **Action**: Increments attempt count, transitions to `PROCESSING`, and dispatches asynchronous bank execution without holding database transactions.
+
+### B. PaymentRecoveryWorker (Stale PROCESSING Recovery)
+- **Schedule**: Fixed delay `app.recovery.poll-interval-ms` (default: 2000ms).
+- **Query**: `SELECT * FROM payments WHERE status = 'PROCESSING' AND mode = 'PROTECTED' AND updated_at <= :threshold ORDER BY updated_at ASC LIMIT :limit FOR UPDATE SKIP LOCKED`.
+- **Threshold**: `updated_at <= now - app.recovery.stale-processing-ms` (default: 60000ms, exceeding bank read timeout plus worker queue wait).
+- **Safety Rules**: Only `PROTECTED` mode payments are recovered. `NAIVE` mode stays unsafe.
+- **Action**: Transitions stuck payments to `UNKNOWN` through `PaymentStateMachine` with event detail `"Recovered after interruption: outcome unknown"`, commits audit events, broadcasts SSE events, and sets timestamps so `PaymentReconciliationWorker` can resolve them.
+
+### C. PaymentReconciliationWorker
+- **Schedule**: Fixed delay `app.reconcile.poll-interval-ms` (default: 2000ms).
+- **Query**: `SELECT * FROM payments WHERE status = 'UNKNOWN' AND updated_at <= :threshold ORDER BY updated_at ASC LIMIT :limit FOR UPDATE SKIP LOCKED`.
+- **Action**: Queries `GET /bank/status/{paymentRef}`. If charged at bank, transitions to `SUCCESS` without second debit. If not charged, transitions to `RETRYING` for safe retry.

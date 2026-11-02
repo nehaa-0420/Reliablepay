@@ -1,6 +1,6 @@
 # Phases
 
-Today is 19 Oct 2026. Review 2 is 24 Oct. Target: Phases 0-5 working by 23 Oct, even if rough.
+Today is November 2026. Review 2 completed. Target: Review 3 milestone.
 
 | Phase | Goal | Done when |
 |---|---|---|

@@ -45,6 +45,10 @@ app:
     enabled: ${RECONCILE_ENABLED:true}
     grace-ms: ${RECONCILE_GRACE_MS:6000}
     poll-interval-ms: ${RECONCILE_POLL_INTERVAL_MS:2000}
+  recovery:
+    enabled: ${RECOVERY_ENABLED:true}
+    stale-processing-ms: ${RECOVERY_STALE_PROCESSING_MS:60000}
+    poll-interval-ms: ${RECOVERY_POLL_INTERVAL_MS:2000}
   idempotency:
     ttl-hours: 24
   experiment:

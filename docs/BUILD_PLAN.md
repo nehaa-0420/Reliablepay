@@ -48,6 +48,6 @@ Render: Docker web services for payment-service and mock-bank + managed Postgres
 Free tiers sleep when idle and may have time limits on the free database: check current Render/Vercel
 terms, and wake both services a few minutes before any demo.
 
-## 9. Minimum demo for Review 2 (24 Oct)
+## 9. Demo Target for Review 3
 Landing page -> create payment -> duplicate click returns same payment -> bank timeout -> retry -> success ->
-chaos panel -> run experiment -> Naive vs Protected numbers. Everything else is "remaining 50%".
+chaos panel -> run experiment -> Naive vs Protected numbers -> stale processing recovery.

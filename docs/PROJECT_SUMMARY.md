@@ -9,7 +9,7 @@ payments whose outcome is unknown, and proves all this with measured experiments
 - 3rd-year B.Tech IT student project (team of 4, student is team lead). Design Project, Alliance University.
 - Industry brief from Citi: "Design and Development of a Reliable Payment Processing System with
   Retry and Failure Handling". Faculty coordinator: Dr. K. Madheswari. Industry mentor: Mrithula KL.
-- Review 2 is on 24 Oct 2026 (about 50% completion expected). Final system is graded later.
+- Review 2 completed; Review 3 is the upcoming evaluation milestone. Final system is graded later.
 - The student wants to impress a jury: a live demo beats slides.
 
 ## Problem
@@ -52,5 +52,5 @@ INITIATED -> PROCESSING -> SUCCESS | FAILED | RETRYING | UNKNOWN | DEAD_LETTERED
 Scaffold only (nothing compiled). Follow docs/PHASES.md. Prompts are in docs/prompts/.
 
 ## Risks
-Free-tier hosting sleeps/cold-starts (wake services before a demo); limited time before Review 2;
+Free-tier hosting sleeps/cold-starts (wake services before a demo); preparation for Review 3;
 literature table has weak entries that need cleanup; scaffold versions unverified.
