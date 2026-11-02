@@ -161,7 +161,7 @@ async function run() {
   try {
     await testHealthAndWakeEndpoints();
     await testConcurrentDoubleSubmit();
-    const expId = process.env.EXPERIMENT_ID || '2c893ae2-3a68-4358-81dc-a9d84ccc0904';
+    const expId = process.env.EXPERIMENT_ID || '23f4f415-8699-44fe-b58e-62ddd72f2a92';
     await testCompareNumbersMatch(expId);
     console.log('\n==================================================');
     console.log('ALL ACCEPTANCE TESTS COMPLETED SUCCESSFULLY');
