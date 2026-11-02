@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface PaymentEventRepository extends JpaRepository<PaymentEvent, Long> {
     List<PaymentEvent> findByPaymentIdOrderByCreatedAtAsc(UUID paymentId);
+    List<PaymentEvent> findTop20ByOrderByIdDesc();
 }

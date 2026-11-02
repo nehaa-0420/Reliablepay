@@ -14,8 +14,8 @@ This document catalogs the explicit engineering limitations, architectural trade
 - **Database Expiration**: Render's free managed PostgreSQL expires after 30 days. ReliablePay includes automated Flyway migrations that self-provision clean schemas when connected to a freshly created database instance.
 
 ## 3. Administrative Authentication & Access Control
-- **Current Implementation**: Administrative mutations (`/api/admin/reset`, `/api/admin/config`, `PUT /api/chaos`, `POST /api/experiments/run`, `/bank/admin/**`) are guarded by a shared static secret passed in the `X-Admin-Token` HTTP header.
-- **Production Requirement**: A production gateway requires OAuth 2.0 / OpenID Connect, asymmetric JWT signature validation, Role-Based Access Control (RBAC with Operator, Auditor, and Admin scopes), and automated token rotation.
+- **Current Implementation**: Administrative endpoints (`/api/admin/**`, `/api/payments` list, `/api/metrics/summary`, `/api/chaos`, `/api/experiments/*`, `/api/payments/{id}/requeue`) are protected by an administrative access layer. The system supports both an HMAC-SHA256 signed session token (8-hour expiry) obtained via `POST /api/auth/admin/login` (with env-driven credentials and IP rate-limiting) and the legacy static `X-Admin-Token` header for backward-compatible automation scripts.
+- **Production Requirement**: A production gateway requires OAuth 2.0 / OpenID Connect (OIDC) identity provider federation, asymmetric JWT (RS256/ES256) signature validation with JWKS rotation, multi-factor authentication (MFA), and fine-grained Role-Based Access Control (RBAC with Operator, Auditor, and Admin scopes).
 
 ## 4. Credential Storage & Scope Boundaries (Zero Credential Custody)
 - **Current Implementation**: ReliablePay deliberately operates with **zero credential custody**. It does not ingest, process, store, or log card numbers (PANs), CVVs, expiration dates, or bank account credentials. All transactions use tokenized reference identifiers (`order_ref`, `merchant_ref`, `payment_id`).
@@ -24,3 +24,8 @@ This document catalogs the explicit engineering limitations, architectural trade
 ## 5. Distributed Consistency Model
 - **Current Implementation**: ReliablePay relies on **eventual consistency** through automated bank reconciliation for payments in the `UNKNOWN` state.
 - **Trade-off**: When a network timeout occurs, the payment is held in the `UNKNOWN` state for a configured grace period (default 6,000ms) before status enquiry settles it. This guarantees zero duplicate debits, but introduces recovery latency (MTTR ~15–25 seconds) during heavy chaos. Distributed two-phase commit (2PC) or Saga orchestrations across banking institutions are impractical due to external bank autonomy.
+
+## 6. Real-Time Payment Event Hub (Single-Instance In-Memory Architecture)
+- **Current Implementation**: The real-time `PaymentEventHub` operates entirely in-memory using Spring's `SseEmitter` infrastructure with a thread-safe concurrent registry, capped at 200 concurrent subscriber connections and emitting 15-second keepalive heartbeats (`:heartbeat`). State transition events are published strictly after database transaction commit via `TransactionSynchronization.afterCommit`.
+- **Limitation**: The in-memory hub works for a **single instance only**. In a horizontally-scaled multi-instance cluster behind a round-robin load balancer, a client connected to Instance A will miss transitions processed and committed by background retry or reconciliation workers executing on Instance B.
+- **Production Requirement**: Horizontal scaling requires a distributed message broker (e.g., Redis Pub/Sub, Apache Kafka, or AWS SNS/SQS) connecting backplane instances to a unified SSE/WebSocket distribution cluster.

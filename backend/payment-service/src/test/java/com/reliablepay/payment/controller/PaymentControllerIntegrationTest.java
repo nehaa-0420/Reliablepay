@@ -48,6 +48,9 @@ class PaymentControllerIntegrationTest {
     @MockBean
     private BankClient bankClient;
 
+    @org.springframework.beans.factory.annotation.Value("${app.admin-token:demo-secret-token}")
+    private String adminToken;
+
     @Test
     @DisplayName("POST /api/payments creates payment with initial status INITIATED")
     void createPaymentSuccess() throws Exception {
@@ -249,7 +252,8 @@ class PaymentControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/metrics/summary returns latency metrics fields")
     void getMetricsSummaryReturnsLatencyMetrics() throws Exception {
-        mockMvc.perform(get("/api/metrics/summary"))
+        mockMvc.perform(get("/api/metrics/summary")
+                        .header("X-Admin-Token", adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avgLatencyMs").isNumber())
                 .andExpect(jsonPath("$.p95LatencyMs").isNumber());

@@ -3,7 +3,7 @@
 
 const PAYMENT_SERVICE = process.env.PAYMENT_SERVICE_URL || 'http://localhost:8080';
 const MOCK_BANK = process.env.MOCK_BANK_URL || 'http://localhost:8081';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'demo-secret-123';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 async function testConcurrentDoubleSubmit() {
   console.log('\n==================================================');
@@ -73,12 +73,16 @@ async function testHealthAndWakeEndpoints() {
   const unauthReset = await fetch(`${PAYMENT_SERVICE}/api/admin/reset`, { method: 'POST' });
   console.log(`Unauthorized /api/admin/reset (no token) -> HTTP ${unauthReset.status} (Expected: 401)`);
 
-  // Reset 200 with token
-  const authReset = await fetch(`${PAYMENT_SERVICE}/api/admin/reset`, {
-    method: 'POST',
-    headers: { 'X-Admin-Token': ADMIN_TOKEN }
-  });
-  console.log(`Authorized /api/admin/reset (with token) -> HTTP ${authReset.status}`);
+  // Reset 200 with token (guarded to avoid destructive purge of live demo data during routine testing)
+  if (process.env.TEST_RESET === 'true') {
+    const authReset = await fetch(`${PAYMENT_SERVICE}/api/admin/reset`, {
+      method: 'POST',
+      headers: { 'X-Admin-Token': ADMIN_TOKEN }
+    });
+    console.log(`Authorized /api/admin/reset (with token) -> HTTP ${authReset.status}`);
+  } else {
+    console.log('Authorized /api/admin/reset: Skipped destructive purge to preserve database records (set TEST_RESET=true to execute)');
+  }
 
   // CORS Preflight
   const corsPreflight = await fetch(`${PAYMENT_SERVICE}/api/payments`, {

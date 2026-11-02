@@ -3,6 +3,7 @@ package com.reliablepay.payment.controller;
 import com.reliablepay.payment.dto.CreatePaymentRequest;
 import com.reliablepay.payment.dto.PaymentEventResponse;
 import com.reliablepay.payment.dto.PaymentResponse;
+import com.reliablepay.payment.event.PaymentEventHub;
 import com.reliablepay.payment.model.PaymentMode;
 import com.reliablepay.payment.model.PaymentStatus;
 import com.reliablepay.payment.service.PaymentService;
@@ -15,9 +16,12 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -28,9 +32,11 @@ import java.util.UUID;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final PaymentEventHub paymentEventHub;
 
-    public PaymentController(PaymentService paymentService) {
+    public PaymentController(PaymentService paymentService, PaymentEventHub paymentEventHub) {
         this.paymentService = paymentService;
+        this.paymentEventHub = paymentEventHub;
     }
 
     @Operation(summary = "Create or replay payment", description = "Initiate an idempotent payment request. If Idempotency-Key has already been used with identical payload, returns 200 OK with cached record. If payload differs, returns 422 Unprocessable Entity.")
@@ -80,6 +86,34 @@ public class PaymentController {
     @GetMapping("/{id}/events")
     public ResponseEntity<List<PaymentEventResponse>> getPaymentEvents(@PathVariable UUID id) {
         return ResponseEntity.ok(paymentService.getPaymentEvents(id));
+    }
+
+    @Operation(summary = "Stream real-time payment state transitions (SSE)", description = "Server-Sent Events stream for customer payment progress. Emits snapshot event first, then transition events. Automatically closes shortly after terminal status (SUCCESS, FAILED, DEAD_LETTERED).")
+    @GetMapping(value = "/{id}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> streamPaymentEvents(@PathVariable UUID id) {
+        PaymentResponse payment = paymentService.getPaymentById(id);
+        SseEmitter emitter = paymentEventHub.subscribePayment(id);
+
+        try {
+            emitter.send(SseEmitter.event()
+                    .name("snapshot")
+                    .data(payment));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+            return ResponseEntity.ok()
+                    .header("Cache-Control", "no-cache")
+                    .header("X-Accel-Buffering", "no")
+                    .body(emitter);
+        }
+
+        if (paymentEventHub.isTerminalStatus(payment.getStatus())) {
+            paymentEventHub.scheduleClose(id, emitter, 500);
+        }
+
+        return ResponseEntity.ok()
+                .header("Cache-Control", "no-cache")
+                .header("X-Accel-Buffering", "no")
+                .body(emitter);
     }
 
     @Operation(summary = "Requeue dead-lettered payment", description = "Reset a DEAD_LETTERED payment back to RETRYING for another processing attempt")

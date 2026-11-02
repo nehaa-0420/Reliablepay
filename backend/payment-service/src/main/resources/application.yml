@@ -1,6 +1,8 @@
 server:
   port: ${PORT:8080}
 spring:
+  profiles:
+    default: local
   application:
     name: payment-service
   datasource:
@@ -25,6 +27,11 @@ app:
   redis-enabled: ${REDIS_ENABLED:false}
   admin-reset-enabled: ${ADMIN_RESET_ENABLED:true}
   admin-token: ${ADMIN_TOKEN:}
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+  auth:
+    token-secret: ${AUTH_TOKEN_SECRET:}
   bank:
     read-timeout-ms: ${BANK_READ_TIMEOUT_MS:2000}
     connect-timeout-ms: ${BANK_CONNECT_TIMEOUT_MS:1000}

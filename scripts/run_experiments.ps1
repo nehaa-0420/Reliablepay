@@ -9,10 +9,16 @@ param(
     [int]$LatencyMs = 100,
     [int]$Repetitions = 3,
     [string]$BaseUrl = "http://localhost:8080",
-    [string]$Label = "Baseline-100"
+    [string]$Label = "Baseline-100",
+    [string]$AdminToken = $env:ADMIN_TOKEN
 )
 
 $ErrorActionPreference = "Stop"
+
+$headers = @{}
+if ($AdminToken) {
+    $headers["X-Admin-Token"] = $AdminToken
+}
 
 Write-Host "===========================================================" -ForegroundColor Cyan
 Write-Host "ReliablePay Empirical Experiment Suite: $Label" -ForegroundColor Cyan
@@ -28,7 +34,7 @@ for ($r = 1; $r -le $Repetitions; $r++) {
 
     # Reset state prior to each run
     try {
-        $resetResp = Invoke-RestMethod -Uri "$BaseUrl/api/admin/reset" -Method Post
+        $resetResp = Invoke-RestMethod -Uri "$BaseUrl/api/admin/reset" -Method Post -Headers $headers
         Write-Host "Database and bank reset: $($resetResp.status)" -ForegroundColor Gray
     } catch {
         Write-Warning "Reset endpoint notice: $($_.Exception.Message)"
@@ -50,7 +56,7 @@ for ($r = 1; $r -le $Repetitions; $r++) {
         }
     } | ConvertTo-Json -Depth 5
 
-    $launchResp = Invoke-RestMethod -Uri "$BaseUrl/api/experiments/run" -Method Post -Body $body -ContentType "application/json"
+    $launchResp = Invoke-RestMethod -Uri "$BaseUrl/api/experiments/run" -Method Post -Body $body -ContentType "application/json" -Headers $headers
     $expId = $launchResp.experimentId
     Write-Host "Experiment launched with ID: $expId" -ForegroundColor Green
 
@@ -62,7 +68,7 @@ for ($r = 1; $r -le $Repetitions; $r++) {
     while ($status -eq "RUNNING" -and $pollCount -lt 120) {
         Start-Sleep -Seconds 3
         $pollCount++
-        $expData = Invoke-RestMethod -Uri "$BaseUrl/api/experiments/$expId" -Method Get
+        $expData = Invoke-RestMethod -Uri "$BaseUrl/api/experiments/$expId" -Method Get -Headers $headers
         $status = $expData.status
         Write-Host "Polling [$pollCount] Status: $status ... (elapsed ~$($pollCount * 3)s)" -ForegroundColor Gray
     }

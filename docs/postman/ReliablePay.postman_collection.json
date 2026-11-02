@@ -2,7 +2,7 @@
   "info": {
     "name": "ReliablePay API Collection",
     "_postman_id": "7b2e84c1-6b83-4923-8c45-d36c2ef00192",
-    "description": "Comprehensive Postman test collection for ReliablePay fault-tolerant payment processing system.\nCovers idempotent payment creation, replay, conflict detection (422), metrics telemetry, chaos engineering, experiment runner, and DLQ requeue.",
+    "description": "Comprehensive Postman test collection for ReliablePay fault-tolerant payment processing system.\nCovers idempotent payment creation, replay, conflict detection (422), real-time SSE event streams, admin authentication layer (HMAC-SHA256), metrics telemetry, chaos engineering, experiment runner, and DLQ requeue.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,8 +12,23 @@
       "type": "string"
     },
     {
+      "key": "adminUsername",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "adminToken",
-      "value": "admin-secret-token",
+      "value": "",
       "type": "string"
     },
     {
@@ -34,7 +49,77 @@
   ],
   "item": [
     {
+      "name": "00 - Admin Login (POST /api/auth/admin/login)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set('authToken', jsonData.token);",
+              "    console.log('Saved authToken into collection variables');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/admin/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "admin", "login"]
+        },
+        "description": "Authenticates using ADMIN_USERNAME and ADMIN_PASSWORD. Returns an HMAC-SHA256 signed token valid for 8 hours. Rate-limited to 5 failures per minute per IP."
+      }
+    },
+    {
+      "name": "00b - Validate Admin Token (GET /api/auth/admin/me)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/admin/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "admin", "me"]
+        },
+        "description": "Validates active Bearer token or X-Admin-Token header."
+      }
+    },
+    {
       "name": "01 - Create Payment (201 Created)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.id) {",
+              "    pm.collectionVariables.set('paymentId', jsonData.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -141,42 +226,101 @@
       }
     },
     {
+      "name": "05b - Customer Real-Time Payment Stream (SSE)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "text/event-stream"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/{{paymentId}}/stream",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "{{paymentId}}", "stream"]
+        },
+        "description": "Connects to real-time Server-Sent Events stream for a specific payment. Emits initial snapshot, then live transitions until terminal status."
+      }
+    },
+    {
+      "name": "05c - Admin Global Event Stream (SSE)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "text/event-stream"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/stream",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "stream"]
+        },
+        "description": "Admin real-time SSE stream. Emits initial status counts + last 20 events snapshot, then broadcasts all system-wide payment transitions."
+      }
+    },
+    {
       "name": "06 - Requeue Dead-Lettered Payment",
       "request": {
         "method": "POST",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/payments/{{paymentId}}/requeue",
           "host": ["{{baseUrl}}"],
           "path": ["api", "payments", "{{paymentId}}", "requeue"]
         },
-        "description": "Transitions a DEAD_LETTERED payment back to RETRYING for re-evaluation by the retry engine."
+        "description": "Transitions a DEAD_LETTERED payment back to RETRYING for re-evaluation by the retry engine. Requires admin authorization."
       }
     },
     {
       "name": "07 - Get Metrics Summary (with Latencies)",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/metrics/summary",
           "host": ["{{baseUrl}}"],
           "path": ["api", "metrics", "summary"]
         },
-        "description": "Returns aggregate payment counts, retry success rate, recovery MTTR, avgLatencyMs, p95LatencyMs, duplicate orders, and overcharged amount."
+        "description": "Returns aggregate payment counts, retry success rate, recovery MTTR, avgLatencyMs, p95LatencyMs, duplicate orders, and overcharged amount. Requires admin authorization."
       }
     },
     {
       "name": "08 - Get Active Chaos Configuration",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/chaos",
           "host": ["{{baseUrl}}"],
           "path": ["api", "chaos"]
         },
-        "description": "Reads current mock-bank failure rates and simulated delays."
+        "description": "Reads current mock-bank failure rates and simulated delays. Requires admin authorization."
       }
     },
     {
@@ -185,8 +329,8 @@
         "method": "PUT",
         "header": [
           {
-            "key": "X-Admin-Token",
-            "value": "{{adminToken}}",
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
             "type": "text"
           },
           {
@@ -203,7 +347,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["api", "chaos"]
         },
-        "description": "Updates chaos simulation profile. Protected by X-Admin-Token."
+        "description": "Updates chaos simulation profile. Protected by Authorization Bearer token or X-Admin-Token."
       }
     },
     {
@@ -212,8 +356,8 @@
         "method": "POST",
         "header": [
           {
-            "key": "X-Admin-Token",
-            "value": "{{adminToken}}",
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
             "type": "text"
           },
           {
@@ -230,14 +374,20 @@
           "host": ["{{baseUrl}}"],
           "path": ["api", "experiments", "run"]
         },
-        "description": "Spawns an asynchronous head-to-head comparison run between NAIVE and PROTECTED protocols."
+        "description": "Spawns an asynchronous head-to-head comparison run between NAIVE and PROTECTED protocols. Protected by admin auth."
       }
     },
     {
       "name": "11 - Get Experiment Telemetry",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/experiments/{{experimentId}}",
           "host": ["{{baseUrl}}"],
@@ -252,8 +402,8 @@
         "method": "POST",
         "header": [
           {
-            "key": "X-Admin-Token",
-            "value": "{{adminToken}}",
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
             "type": "text"
           }
         ],
@@ -262,7 +412,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["api", "admin", "reset"]
         },
-        "description": "Resets the database and mock-bank transaction ledger for a fresh clean benchmark."
+        "description": "Resets the database and mock-bank transaction ledger for a fresh clean benchmark. Protected by admin auth."
       }
     }
   ]

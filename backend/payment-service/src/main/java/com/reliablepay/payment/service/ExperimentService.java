@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class ExperimentService {
@@ -31,6 +32,8 @@ public class ExperimentService {
     private final BankClient bankClient;
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
+    private final AtomicReference<String> activeExperimentId = new AtomicReference<>(null);
+    private final AtomicReference<String> latestCompletedExperimentId = new AtomicReference<>(null);
     private final Map<String, ExperimentResponse> experimentStore = new ConcurrentHashMap<>();
     private final Map<String, Long> startTimes = new ConcurrentHashMap<>();
     private final ExecutorService experimentRunner = Executors.newSingleThreadExecutor();
@@ -60,6 +63,7 @@ public class ExperimentService {
         }
 
         String experimentId = UUID.randomUUID().toString();
+        activeExperimentId.set(experimentId);
         long now = System.currentTimeMillis();
         startTimes.put(experimentId, now);
         experimentStore.put(experimentId, new ExperimentResponse(
@@ -76,6 +80,18 @@ public class ExperimentService {
         experimentRunner.submit(() -> runExperimentAsync(experimentId, request));
 
         return experimentId;
+    }
+
+    public String getActiveExperimentId() {
+        return activeExperimentId.get();
+    }
+
+    public ExperimentResponse getLatestExperiment() {
+        String latestId = latestCompletedExperimentId.get();
+        if (latestId != null) {
+            return experimentStore.get(latestId);
+        }
+        return null;
     }
 
     public ExperimentResponse getExperiment(String id) {
@@ -133,6 +149,7 @@ public class ExperimentService {
                     delta
             );
             experimentStore.put(experimentId, finalResponse);
+            latestCompletedExperimentId.set(experimentId);
             log.info("Experiment {} COMPLETED successfully in {}ms", experimentId, durationMs);
 
         } catch (Exception ex) {
@@ -150,6 +167,7 @@ public class ExperimentService {
                     null
             ));
         } finally {
+            activeExperimentId.set(null);
             isRunning.set(false);
         }
     }

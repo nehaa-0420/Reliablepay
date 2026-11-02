@@ -33,14 +33,16 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                .allowedHeaders("*")
+                .allowedHeaders("Authorization", "Content-Type", "X-Admin-Token", "Idempotency-Key", "*")
+                .exposedHeaders("Authorization", "X-Admin-Token")
                 .allowCredentials(true)
                 .maxAge(3600);
 
         registry.addMapping("/**")
                 .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                .allowedHeaders("*")
+                .allowedHeaders("Authorization", "Content-Type", "X-Admin-Token", "Idempotency-Key", "*")
+                .exposedHeaders("Authorization", "X-Admin-Token")
                 .allowCredentials(true)
                 .maxAge(3600);
     }
@@ -48,6 +50,6 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(adminTokenInterceptor)
-                .addPathPatterns("/api/admin/**", "/api/chaos/**", "/api/experiments/**");
+                .addPathPatterns("/**");
     }
 }

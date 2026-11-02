@@ -6,6 +6,9 @@ import com.reliablepay.payment.config.ReconcileProperties;
 import com.reliablepay.payment.config.RetryProperties;
 import com.reliablepay.payment.dto.AdminConfigRequest;
 import com.reliablepay.payment.dto.AdminConfigResponse;
+import com.reliablepay.payment.dto.AdminStreamSnapshotResponse;
+import com.reliablepay.payment.dto.PaymentEventResponse;
+import com.reliablepay.payment.model.PaymentStatus;
 import com.reliablepay.payment.repository.IdempotencyRecordRepository;
 import com.reliablepay.payment.repository.PaymentAttemptRepository;
 import com.reliablepay.payment.repository.PaymentEventRepository;
@@ -15,6 +18,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class AdminService {
@@ -101,5 +108,26 @@ public class AdminService {
         }
 
         log.info("System fully reset: payments, attempts, events, idempotency keys cleared and bank reset");
+    }
+
+    @Transactional(readOnly = true)
+    public AdminStreamSnapshotResponse getStreamSnapshot() {
+        List<Object[]> grouped = paymentRepository.countByStatusGrouped();
+        Map<String, Long> statusCounts = new HashMap<>();
+        for (PaymentStatus s : PaymentStatus.values()) {
+            statusCounts.put(s.name(), 0L);
+        }
+        for (Object[] row : grouped) {
+            PaymentStatus st = (PaymentStatus) row[0];
+            Long cnt = (Long) row[1];
+            statusCounts.put(st.name(), cnt);
+        }
+
+        List<PaymentEventResponse> recentEvents = paymentEventRepository.findTop20ByOrderByIdDesc()
+                .stream()
+                .map(PaymentEventResponse::from)
+                .toList();
+
+        return new AdminStreamSnapshotResponse(statusCounts, recentEvents);
     }
 }

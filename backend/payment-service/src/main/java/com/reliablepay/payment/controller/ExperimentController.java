@@ -34,9 +34,30 @@ public class ExperimentController {
         }
         String experimentId = experimentService.startExperiment(request);
         return ResponseEntity.accepted().body(Map.of(
+                "id", experimentId,
                 "experimentId", experimentId,
                 "status", "RUNNING"
         ));
+    }
+
+    @Operation(summary = "Get active running experiment status", description = "Returns active experiment ID if a benchmark is currently executing")
+    @GetMapping("/active")
+    public ResponseEntity<Map<String, Object>> getActiveExperiment() {
+        String activeId = experimentService.getActiveExperimentId();
+        if (activeId != null) {
+            return ResponseEntity.ok(Map.of("active", true, "id", activeId, "experimentId", activeId));
+        }
+        return ResponseEntity.ok(Map.of("active", false));
+    }
+
+    @Operation(summary = "Get latest completed experiment", description = "Returns latest finished benchmark results")
+    @GetMapping("/latest")
+    public ResponseEntity<ExperimentResponse> getLatestExperiment() {
+        ExperimentResponse latest = experimentService.getLatestExperiment();
+        if (latest != null) {
+            return ResponseEntity.ok(latest);
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Get experiment status and telemetry", description = "Poll experiment progress or fetch terminal comparison telemetry including deltas and latency profiles")

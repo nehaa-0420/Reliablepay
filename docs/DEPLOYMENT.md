@@ -58,7 +58,10 @@ This document provides complete instructions for deploying ReliablePay to cloud 
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Optional | Individual database connection parameters (used if `DATABASE_URL` is omitted) | `dpg-xxx.render.com`, `5432`, `reliablepay`, `reliablepay`, `secret` |
 | `BANK_BASE_URL` | Yes | Public HTTPS URL of the deployed `reliablepay-mock-bank` | `https://reliablepay-mock-bank.onrender.com` |
 | `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated list of allowed origins | `https://reliablepay-frontend.vercel.app,http://localhost:5173` |
-| `ADMIN_TOKEN` | Yes | Secret token guarding `/api/admin/reset`, `/api/chaos` (PUT), `/api/experiments/run` (POST) | e.g. `citi-demo-secret-token-2026` |
+| `ADMIN_USERNAME` | Yes | Admin username for `POST /api/auth/admin/login` (no code default; fails startup if unset outside local) | Set in dashboard / secret store |
+| `ADMIN_PASSWORD` | Yes | Admin password for `POST /api/auth/admin/login` (no code default; fails startup if unset outside local) | Set in dashboard / secret store |
+| `AUTH_TOKEN_SECRET` | Yes | HMAC-SHA256 signing secret (at least 32 characters; fails startup if unset outside local) | Strong random 256-bit hexadecimal string |
+| `ADMIN_TOKEN` | Optional | Shared token for script automation and legacy `X-Admin-Token` header support | Set in dashboard / secret store |
 | `ADMIN_RESET_ENABLED` | No | Allows POST `/api/admin/reset` | `true` |
 | `REDIS_ENABLED` | No | Enables optional Redis cache layer (disabled on free tier) | `false` |
 | `BANK_READ_TIMEOUT_MS` | No | HTTP read timeout for bank transactions | `2000` |
@@ -122,7 +125,10 @@ git push -u origin main
    - Web Service 1: `reliablepay-mock-bank` (Docker, Free)
    - Web Service 2: `reliablepay-payment-service` (Docker, Free)
 5. Set the sync values prompted by Render:
-   - `ADMIN_TOKEN`: Enter a secure random string (e.g. `citi-demo-secret-2026`).
+   - `ADMIN_USERNAME`: Enter the administrative username.
+   - `ADMIN_PASSWORD`: Enter a secure administrative password.
+   - `AUTH_TOKEN_SECRET`: Enter a 64-character random hexadecimal HMAC signing key.
+   - `ADMIN_TOKEN`: Enter an optional secure secret token for script automation.
    - `BANK_BASE_URL`: Initially enter `https://reliablepay-mock-bank.onrender.com` (Render assigns predictable URLs based on service name).
    - `CORS_ALLOWED_ORIGINS`: Enter your anticipated Vercel URL and localhost: `https://<your-project>.vercel.app,http://localhost:5173`.
 6. Click **Apply**.
