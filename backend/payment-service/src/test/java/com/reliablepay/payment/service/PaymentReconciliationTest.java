@@ -121,4 +121,44 @@ class PaymentReconciliationTest {
         // Bank getStatus was not called for this payment
         verify(bankClient, never()).getStatus(eq(payment.getId().toString()));
     }
+
+    @Test
+    @DisplayName("UNKNOWN + bank reports charged=true BUT count=0 -> does NOT become SUCCESS, safely moves to RETRYING")
+    void unknownChargedZeroCountDoesNotBecomeSuccess() {
+        Payment payment = createUnknownPayment(10);
+
+        // Suspicious payload: charged=true, but count=0
+        when(bankClient.getStatus(eq(payment.getId().toString())))
+                .thenReturn(new BankStatusResponse(payment.getId().toString(), true, 0L));
+
+        reconciliationWorker.reconcileUnknownPayments();
+
+        Payment reconciled = paymentRepository.findById(payment.getId()).orElseThrow();
+        // Crucial invariant: never mark SUCCESS when bank reports zero charges!
+        assertThat(reconciled.getStatus()).isEqualTo(PaymentStatus.RETRYING);
+        assertThat(reconciled.getLastError()).contains("charge not found (count=0)");
+        verify(bankClient, never()).charge(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("BankStatusResponse deserializes both count and chargeCount JSON fields accurately")
+    void bankStatusDeserializationMapsChargeCount() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        // JSON format emitted by mock-bank (using chargeCount field)
+        String mockBankJson = "{\"paymentRef\":\"c695f390-f7f5-4ff6-8cde-d6b3c45f94b3\",\"charged\":true,\"chargeCount\":1}";
+        BankStatusResponse res1 = mapper.readValue(mockBankJson, BankStatusResponse.class);
+
+        assertThat(res1.paymentRef()).isEqualTo("c695f390-f7f5-4ff6-8cde-d6b3c45f94b3");
+        assertThat(res1.charged()).isTrue();
+        assertThat(res1.count()).isEqualTo(1L);
+        assertThat(res1.hasConfirmedCharge()).isTrue();
+
+        // JSON format using count field
+        String standardJson = "{\"paymentRef\":\"c695f390-f7f5-4ff6-8cde-d6b3c45f94b3\",\"charged\":true,\"count\":2}";
+        BankStatusResponse res2 = mapper.readValue(standardJson, BankStatusResponse.class);
+
+        assertThat(res2.count()).isEqualTo(2L);
+        assertThat(res2.hasConfirmedCharge()).isTrue();
+    }
 }

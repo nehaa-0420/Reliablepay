@@ -111,17 +111,18 @@ public class PaymentReconciliationWorker {
                     return;
                 }
 
-                if (bankStatus != null && bankStatus.charged()) {
+                if (bankStatus != null && bankStatus.charged() && bankStatus.count() > 0) {
                     // Ground truth: bank already debited funds! Mark SUCCESS without second charge
                     payment.setLastError(null);
                     payment.setNextRetryAt(null);
                     stateMachine.transition(payment, PaymentStatus.SUCCESS,
                             "Reconciled with bank: charge confirmed (count=" + bankStatus.count() + ")");
                     paymentRepository.saveAndFlush(payment);
-                    log.info("Reconciliation RESOLVED payment {} to SUCCESS", paymentId);
+                    log.info("Reconciliation RESOLVED payment {} to SUCCESS (count={})", paymentId, bankStatus.count());
                 } else {
-                    // Ground truth: bank was never charged! Safe to retry immediately
-                    payment.setLastError("Reconciled with bank: charge not found; scheduled immediate retry");
+                    // Ground truth: bank was never charged or reported zero charges! Safe to retry immediately
+                    long reportedCount = bankStatus != null ? bankStatus.count() : 0;
+                    payment.setLastError("Reconciled with bank: charge not found (count=" + reportedCount + "); scheduled immediate retry");
                     payment.setNextRetryAt(Instant.now());
                     stateMachine.transition(payment, PaymentStatus.RETRYING,
                             "Reconciled with bank: charge not found; marked RETRYING for immediate retry");

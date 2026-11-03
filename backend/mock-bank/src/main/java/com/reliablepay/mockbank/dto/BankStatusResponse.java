@@ -38,4 +38,9 @@ public class BankStatusResponse {
     public void setChargeCount(long chargeCount) {
         this.chargeCount = chargeCount;
     }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("count")
+    public long getCount() {
+        return chargeCount;
+    }
 }
