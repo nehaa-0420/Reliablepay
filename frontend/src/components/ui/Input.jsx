@@ -5,8 +5,10 @@ const Input = forwardRef(function Input(
     label,
     error,
     helperText,
-    icon: Icon,
-    iconRight: IconRight,
+    icon: IconProp,
+    leftIcon,
+    iconRight: IconRightProp,
+    rightIcon,
     mono = false,
     className = '',
     id,
@@ -16,6 +18,8 @@ const Input = forwardRef(function Input(
   },
   ref
 ) {
+  const Icon = leftIcon || IconProp;
+  const IconRight = rightIcon || IconRightProp;
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
   return (
@@ -30,7 +34,7 @@ const Input = forwardRef(function Input(
       <div className={`ui-input-control ${error ? 'ui-input-error' : ''}`}>
         {Icon && (
           <span className="ui-input-icon-left">
-            <Icon size={16} />
+            {React.isValidElement(Icon) ? Icon : <Icon size={16} />}
           </span>
         )}
 
@@ -44,7 +48,7 @@ const Input = forwardRef(function Input(
 
         {IconRight && (
           <span className="ui-input-icon-right">
-            <IconRight size={16} />
+            {React.isValidElement(IconRight) ? IconRight : <IconRight size={16} />}
           </span>
         )}
       </div>

@@ -1,6 +1,6 @@
-# ReliablePay — Pre-Demo Wake-Up Routine & Review Checklist
+# ReliablePay — Pre-Demo Wake-Up Routine & Review 3 Checklist
 
-This checklist guarantees a smooth, zero-surprise live demonstration during technical reviews and panel evaluations.
+This checklist guarantees a smooth, zero-surprise live demonstration during technical reviews and panel evaluations for **Review 3** (November 2026). It keeps an honest history of earlier evaluations (Review 1: core engine; Review 2: UI redesign and protocol benchmark).
 
 ---
 
@@ -17,24 +17,31 @@ This checklist guarantees a smooth, zero-surprise live demonstration during tech
 
 ## 2. Pre-Demo Wake-Up Timeline (What to Open & When)
 
-### **T-10 Minutes: Trigger Service Awakening**
-Render free-tier instances may be asleep. Do not wait until the panel arrives to make the first request.
+### **T-10 Minutes: Run the Automated Wake-Up Script**
+Render free-tier instances sleep when idle. Always wake the services before the evaluation panel convenes.
 
-1. **Option A (Automated Wake-up Command)**:
-   ```bash
-   # Ping both services simultaneously via the system wake endpoint:
-   curl -I "https://reliablepay-payment-service.onrender.com/api/system/wake"
-   curl -I "https://reliablepay-mock-bank.onrender.com/actuator/health"
+1. **Option A (Recommended — Automated PowerShell Wake-up)**:
+   Run [`scripts/wake.ps1`](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/scripts/wake.ps1):
+   ```powershell
+   # Cloud deployment wake:
+   powershell -ExecutionPolicy Bypass -File scripts/wake.ps1
+
+   # Or when testing against localhost fallback:
+   powershell -ExecutionPolicy Bypass -File scripts/wake.ps1 -PaymentServiceUrl http://localhost:8080 -MockBankUrl http://localhost:8081
    ```
+   - Automatically issues wake triggers to `/api/system/wake` and `/actuator/health`.
+   - Polls every 3 seconds with timestamps until both `Payment Service` and `Mock Bank` report status **UP**.
+   - Displays real elapsed duration so you know exactly when the backend is hot.
+
 2. **Option B (Browser Wake-up)**:
-   - Open `https://reliablepay-frontend.vercel.app/` (or your active Vercel deployment URL).
+   - Open `https://reliablepay-demo.vercel.app/` (or your active Vercel deployment URL).
    - The top banner will display: `Engine Initializing... Waking cloud instance`.
-   - Wait until both pill badges turn green: `Payment Service UP` & `Mock Bank UP`.
+   - Wait until the pill badge turns green: `Engine UP`.
 
 ### **T-5 Minutes: Seed Live Benchmark Demonstration Data**
 Ensure the latest benchmark run and comparative charts are freshly populated:
 
-1. In the browser, navigate to the **Chaos Lab** (`/lab`).
+1. In the browser, navigate to the **Chaos Lab** (`/admin/lab`).
 2. Click the **"Prepare Demo (Reset + 60 Txns)"** button.
    - *Step 1/3*: Purges old demo records and resets state.
    - *Step 2/3*: Configures the **Demo Chaos Preset** (30% timeouts, 10% errors, 500ms latency).
@@ -43,28 +50,29 @@ Ensure the latest benchmark run and comparative charts are freshly populated:
    ```bash
    node scripts/prepare_demo.js
    ```
-4. Verify the benchmark run completes (`status: DONE` in ~60-75s) and redirects to `/compare`.
+4. Verify the benchmark run completes (`status: DONE` in ~60-75s) and redirects to `/admin/compare`.
 
 ### **T-1 Minute: Stage Presentation Browser Tabs**
-Open and organize the following four tabs in order:
-- **Tab 1**: Landing Page (`/`) — Architecture flow and value proposition.
-- **Tab 2**: Operational Dashboard (`/dashboard`) — Live ledger and payment drawer.
-- **Tab 3**: Chaos Lab (`/lab`) — Network fault injection controls and presets.
-- **Tab 4**: Protocol Comparison (`/compare`) — Side-by-side empirical proof of zero duplicates.
+Open and organize the presentation tabs:
+- **Tab 1**: Landing Page (`/`) — Hero value proposition, team attribution, and QR code to `/app`.
+- **Tab 2**: Customer Mobile App (`/app`) — Simulated smartphone shell, 4 merchants, keypad, client retry demo.
+- **Tab 3**: Admin Live Monitor (`/admin`) — Real-time SSE pipeline board, counters, event ticker, throughput chart.
+- **Tab 4**: Payments Ledger (`/admin/payments`) — Transactions list, idempotency filter, and payment audit drawer.
+- **Tab 5**: Protocol Comparison (`/admin/compare`) — Side-by-side empirical proof of zero duplicate debits.
 
 ---
 
-## 3. Five-Minute Live Panel Flow
+## 3. Five-Minute Live Panel Flow for Review 3
 
 | Minute | Screen | Key Demonstration | Talking Points |
 | :---: | :--- | :--- | :--- |
-| **0:00 - 1:00** | Landing Page (`/`) | Hero journey stepper, system telemetry banner, and animated architecture SVG. | "In distributed payments, network timeouts are inevitable, but customer double-debits are catastrophic. ReliablePay implements an idempotent 7-state machine and automated status reconciliation." |
-| **1:00 - 2:00** | Dashboard (`/dashboard`) | Click **"New Payment"**, enter ₹500, check **"Send twice at once"**, submit. | "When duplicate submissions occur concurrently, the second request safely matches the Idempotency-Key digest, avoiding duplicate bank charges and returning HTTP 200 with the exact same payment ID." |
-| **2:00 - 3:00** | Payment Drawer | Open the submitted payment from the table. | "Inspect the append-only event trail: `INITIATED` → `PROCESSING` → `SUCCESS`. All transitions are audited with microsecond precision in PostgreSQL." |
-| **3:00 - 4:00** | Chaos Lab (`/lab`) | Review the active chaos sliders (30% timeouts, 10% errors). | "We simulate a realistic bank gateway: TCP timeouts where funds may or may not have been debited upstream. Naive retry causes duplicate debits; ReliablePay quarantines in `UNKNOWN`." |
-| **4:00 - 5:00** | Compare Page (`/compare`) | Show comparative cards, duplicate charges chart, and latency profiles. | "Under identical chaos, NAIVE mode caused 14 duplicate charges (₹1,800 overbilled). PROTECTED mode achieved **EXACTLY ZERO DUPLICATES** and 100% loss prevention." |
+| **0:00 - 1:00** | Landing Page (`/`) | Hero journey stepper, team attribution (Alliance University × Citi), and mobile app QR code. | "In distributed payments, network timeouts are inevitable, but customer double-debits are catastrophic. ReliablePay implements an idempotent 7-state machine, client resilience, and automated status reconciliation." |
+| **1:00 - 2:00** | Mobile App (`/app`) | Select Swiggy Express, enter ₹350, click **Pay ₹350**. Show the Progress Screen (`/app/progress/:id`). | "The mobile app connects to `GET /api/payments/{id}/stream` via SSE. Notice the live attempt counter, the 'You will not be charged twice' guarantee badge, and the friendly stepper. If the bank hangs, it quarantines in `UNKNOWN` rather than blind retry." |
+| **2:00 - 3:00** | Client Resilience Demo | Toggle **"Simulate lost response"** on `/app`. Submit payment. | "Here we simulate network failure after bank debit. The client retries safely with the exact same `Idempotency-Key`. The backend detects the lease and returns the existing payment with 0 duplicate debits." |
+| **3:00 - 4:00** | Admin Live Monitor (`/admin`) | Show the live pipeline board with columns `INITIATED` → `PROCESSING` → `RETRYING` → `UNKNOWN` → `SUCCESS` / `DEAD_LETTERED`. | "The Live Monitor subscribes to `GET /api/admin/stream`. As transactions transition in PostgreSQL, cards animate across columns in real-time with Framer Motion, alongside a 50-event ticker and 60-second throughput chart." |
+| **4:00 - 5:00** | Compare Page (`/admin/compare`) | Show comparative cards, duplicate charges chart, and latency profiles from the 60-order run. | "Under identical 30% timeout chaos, NAIVE mode caused multiple duplicate charges (overbilling the user). PROTECTED mode achieved **EXACTLY ZERO DUPLICATES** and 100% loss prevention." |
 
 ---
 
 ## 4. Post-Demo State
-Leave the system in the **Demo Chaos Preset** (`timeoutRate: 0.3`, `errorRate: 0.1`) so examiners or audience members can test interactive payment submissions.
+Leave the system in the **Demo Chaos Preset** (`timeoutRate: 0.3`, `errorRate: 0.1`) so examiners or audience members can test interactive payment submissions via the mobile app.

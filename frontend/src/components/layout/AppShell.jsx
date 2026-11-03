@@ -79,6 +79,11 @@ export default function AppShell({ children, healthStatus = 'UP' }) {
     </Tooltip>
   );
 
+  // If on Mobile App or Admin Console, let their dedicated shells handle layout
+  if (location.pathname.startsWith('/app') || location.pathname.startsWith('/admin')) {
+    return <>{children}</>;
+  }
+
   // If on Landing Page, render Landing top navigation
   if (isLanding) {
     return (
@@ -93,9 +98,10 @@ export default function AppShell({ children, healthStatus = 'UP' }) {
           </Link>
 
           <nav className="landing-nav-links">
-            <Link to="/dashboard" className="landing-nav-link">Dashboard</Link>
-            <Link to="/lab" className="landing-nav-link">Chaos Lab</Link>
-            <Link to="/compare" className="landing-nav-link">Compare</Link>
+            <Link to="/app" className="landing-nav-link">Mobile App</Link>
+            <Link to="/admin" className="landing-nav-link">Admin Console</Link>
+            <Link to="/admin/payments" className="landing-nav-link">Payments</Link>
+            <Link to="/admin/lab" className="landing-nav-link">Chaos Lab</Link>
           </nav>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -108,8 +114,8 @@ export default function AppShell({ children, healthStatus = 'UP' }) {
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <Link to="/dashboard" className="btn btn-primary btn-sm">
-              Open Dashboard →
+            <Link to="/admin" className="btn btn-primary btn-sm">
+              Admin Console →
             </Link>
           </div>
         </header>

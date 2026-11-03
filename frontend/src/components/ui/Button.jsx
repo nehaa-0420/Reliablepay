@@ -18,26 +18,30 @@ export default function Button({
   const isDisabled = disabled || loading;
 
   return (
-    <motion.button
+    <button
       type={type}
       className={`btn btn-${variant} btn-${size} ${className}`}
       disabled={isDisabled}
       onClick={isDisabled ? undefined : onClick}
-      whileTap={{ scale: isDisabled ? 1 : 0.98 }}
-      transition={{ duration: 0.1 }}
       {...props}
     >
       {loading ? (
         <Loader2 className="btn-spinner" size={size === 'sm' ? 14 : size === 'lg' ? 18 : 16} />
+      ) : React.isValidElement(Icon) ? (
+        Icon
       ) : Icon ? (
         <Icon className="btn-icon-left" size={size === 'sm' ? 14 : size === 'lg' ? 18 : 16} />
       ) : null}
       
       <span className="btn-text">{children}</span>
       
-      {!loading && IconRight && (
-        <IconRight className="btn-icon-right" size={size === 'sm' ? 14 : size === 'lg' ? 18 : 16} />
+      {!loading && (
+        React.isValidElement(IconRight) ? (
+          IconRight
+        ) : IconRight ? (
+          <IconRight className="btn-icon-right" size={size === 'sm' ? 14 : size === 'lg' ? 18 : 16} />
+        ) : null
       )}
-    </motion.button>
+    </button>
   );
 }

@@ -11,14 +11,6 @@ export default function Card({
   style,
   ...props
 }) {
-  const Component = hoverLift ? motion.div : 'div';
-  const motionProps = hoverLift
-    ? {
-        whileHover: { y: -2, transition: { duration: 0.15 } },
-        whileTap: onClick ? { y: 0 } : undefined
-      }
-    : {};
-
   const classes = [
     'ui-card',
     elevated ? 'ui-card-elevated' : '',
@@ -31,15 +23,14 @@ export default function Card({
     .join(' ');
 
   return (
-    <Component
+    <div
       className={classes}
       onClick={onClick}
       style={style}
-      {...motionProps}
       {...props}
     >
       {children}
-    </Component>
+    </div>
   );
 }
 

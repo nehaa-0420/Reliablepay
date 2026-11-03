@@ -1,11 +1,38 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-// Note: VITE_ADMIN_TOKEN is a demo-level guard, not a full production authentication system.
-const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || '';
+export const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+
+export function getAdminToken() {
+  return localStorage.getItem('rp_admin_token') || '';
+}
+
+export function setAdminToken(token) {
+  if (token) {
+    localStorage.setItem('rp_admin_token', token);
+  } else {
+    localStorage.removeItem('rp_admin_token');
+  }
+}
+
+export function clearAdminToken() {
+  localStorage.removeItem('rp_admin_token');
+}
+
+export function getAdminHeaders() {
+  const token = getAdminToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    headers['X-Admin-Token'] = token;
+  }
+  return headers;
+}
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
+  const token = getAdminToken();
+
   const headers = {
     'Accept': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
 
@@ -18,6 +45,10 @@ async function request(path, options = {}) {
     ...options,
     headers
   });
+
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent('rp_auth_unauthorized'));
+  }
 
   if (response.status === 204) {
     return null;
@@ -42,18 +73,18 @@ async function request(path, options = {}) {
   return data;
 }
 
-function getAdminHeaders() {
-  const headers = {};
-  if (ADMIN_TOKEN) {
-    headers['X-Admin-Token'] = ADMIN_TOKEN;
-  }
-  return headers;
-}
-
 export const api = {
   // System Health & Wake-up
   getHealth: () => request('/actuator/health'),
   wakeSystem: () => request('/api/system/wake'),
+  getBankHealth: () => request('/actuator/health'),
+  getAdminConfig: () => request('/api/admin/config'),
+
+  // Auth
+  adminLogin: ({ username, password }) => request('/api/auth/admin/login', {
+    method: 'POST',
+    body: { username, password }
+  }),
 
   // Payments
   getPayments: ({ status, mode, page = 0, size = 10 } = {}) => {
@@ -90,14 +121,12 @@ export const api = {
 
   updateChaosConfig: (config) => request('/api/chaos', {
     method: 'PUT',
-    headers: getAdminHeaders(),
     body: config
   }),
 
   // Experiments
   runExperiment: (config) => request('/api/experiments/run', {
     method: 'POST',
-    headers: getAdminHeaders(),
     body: config
   }),
 
@@ -108,8 +137,7 @@ export const api = {
 
   // Admin
   resetSystem: () => request('/api/admin/reset', {
-    method: 'POST',
-    headers: getAdminHeaders()
+    method: 'POST'
   })
 };
 

@@ -18,8 +18,12 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  Smartphone,
+  LayoutDashboard,
+  QrCode
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -168,17 +172,63 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}
           >
-            <Link to="/dashboard">
-              <Button variant="primary" size="lg" iconRight={ArrowRight}>
-                Open Live Dashboard
+            <Link to="/app">
+              <Button variant="primary" size="lg" icon={Smartphone}>
+                Open Mobile App
               </Button>
             </Link>
-            <Link to="/lab">
-              <Button variant="secondary" size="lg" icon={Zap}>
-                Launch Chaos Lab
+            <Link to="/admin">
+              <Button variant="secondary" size="lg" icon={LayoutDashboard}>
+                Open Admin Console
               </Button>
             </Link>
+            <Link to="/admin/lab">
+              <Button variant="ghost" size="lg" icon={Zap}>
+                Chaos Lab
+              </Button>
+            </Link>
+          </motion.div>
+
+          {/* QR Code to Customer Mobile App */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.35 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '16px',
+              padding: '12px 18px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-lg)',
+              marginTop: '16px',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+              <QRCodeSVG
+                value={
+                  import.meta.env.VITE_PUBLIC_APP_URL ||
+                  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+                    ? `${window.location.origin}/app`
+                    : 'https://reliablepay-demo.vercel.app/app')
+                }
+                size={70}
+                level="M"
+              />
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <QrCode size={15} style={{ color: 'var(--color-primary-500)' }} />
+                <span>Customer Mobile App</span>
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Scan to launch simulated PWA at <code>/app</code>
+              </div>
+            </div>
           </motion.div>
 
           {/* Animated Payment Journey Visual */}

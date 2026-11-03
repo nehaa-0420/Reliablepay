@@ -201,27 +201,37 @@ payment-reliability-system/
 │   ├── payment-service/          # Spring Boot Payment Engine
 │   │   ├── src/main/java/...     # Controllers, Services, Workers, DTOs, Models
 │   │   ├── src/main/resources/   # application.yml, db/migration (Flyway V1 SQL)
-│   │   ├── src/test/java/...     # 35 Unit & Integration tests
-│   │   └── Dockerfile
+│   │   ├── src/test/java/...     # Unit, Integration & Security tests
+│   │   └── Dockerfile            # Container definition (-Xmx256m -XX:+UseSerialGC)
 │   └── mock-bank/                # Simulated Core Banking Switch
 │       ├── src/main/java/...     # BankService, Chaos Engine, Admin Token Guard
-│       ├── src/test/java/...     # 9 Unit & Security tests
+│       ├── src/test/java/...     # Unit & Security tests
 │       └── Dockerfile
-├── frontend/                     # React 18 SPA (Vite + Vanilla CSS Design System)
-│   ├── src/pages/                # LandingPage, DashboardPage, ChaosLabPage, ComparePage
-│   ├── src/components/           # Navbar, PaymentDrawer, MetricCard, ColdStartBanner
-│   ├── src/styles/               # WCAG 2.1 AA tokens, CSS variables, dark/light modes
+├── frontend/                     # React 18 SPA (Vite + Vanilla CSS Design System + PWA)
+│   ├── src/pages/
+│   │   ├── LandingPage.jsx       # Landing page with hero CTAs & mobile app QR code
+│   │   ├── mobile/               # Mobile Customer App (Pay, Progress, Activity, About)
+│   │   └── admin/                # Admin Console (Login, Live Monitor, System)
+│   ├── src/components/
+│   │   ├── mobile/MobileShell.jsx# 390x844 simulated phone frame with status bar
+│   │   ├── layout/AdminLayout.jsx# Responsive admin sidebar & stream telemetry
+│   │   ├── layout/AppShell.jsx   # Top-level desktop navigation
+│   │   └── ui/                   # Button, Card, Input, Modal, StatusBadge, Toast
+│   ├── src/context/              # AdminAuthContext, ThemeContext, ToastContext
+│   ├── src/api/client.js         # Unified API client with JWT & SSE streams
+│   ├── vite.config.js            # Vite configuration with vite-plugin-pwa
 │   └── package.json
 ├── docs/                         # Formal project documentation & review pack
 │   ├── BUILD_PLAN.md             # Architecture decisions & milestone scope
 │   ├── PROJECT_SUMMARY.md        # Citi brief alignment & academic abstract
-│   ├── DEMO_SCRIPT.md            # Exact 3-minute panel demonstration script
-│   ├── REVIEW_PACK.md            # Viva questions, defense answers, compliance matrix
+│   ├── DEPLOYMENT.md             # Complete Render & Vercel deployment manual (Review 3)
+│   ├── DEMO_CHECKLIST.md         # Review 3 pre-demo wake-up routine & presentation flow
+│   ├── FALLBACK.md               # 90-second local Docker Compose emergency plan
+│   ├── FINAL_REPORT.md           # Review 3 delivery report with empirical outputs
 │   ├── KNOWN_LIMITATIONS.md      # Honest scope boundaries & distributed tradeoffs
-│   ├── EVALUATION.md             # Parameter sweep tables & statistical analysis
-│   ├── SECURITY.md               # Admin token guards, sanitization & zero custody
-│   └── screenshots/              # 11 High-resolution UI captures
+│   └── EVALUATION.md             # Parameter sweep tables & statistical analysis
 ├── scripts/                      # Verification, load testing & evaluation automation
+│   ├── wake.ps1                  # Automated service wake-up & health polling script
 │   ├── prepare_demo.js           # 1-Click review demo setup script
 │   ├── verify_acceptance.js      # Automated acceptance test suite
 │   ├── accessibility_audit.js    # WCAG 2.1 AA token contrast validator
@@ -234,15 +244,16 @@ payment-reliability-system/
 
 ---
 
-## 7. Cloud Deployment (Render & Vercel)
+## 7. Cloud Deployment (Render & Vercel) — Review 3
 
 The system includes automated deployment manifests for free-tier cloud hosting:
 - **Render Blueprint (`render.yaml`)**:
   - `reliablepay-db`: Managed PostgreSQL 16
-  - `reliablepay-mock-bank`: Docker Web Service
-  - `reliablepay-payment-service`: Docker Web Service
-- **Vercel Frontend (`frontend/vercel.json`)**: Single-Page App rewrites and environment variable bindings.
-- **Cold-Start Handling**: Because Render free-tier spins down after 15 minutes of inactivity, ReliablePay includes `/api/system/wake` and a frontend `ColdStartBanner` to wake services prior to demonstration. Detailed step-by-step instructions are documented in [docs/DEPLOYMENT.md](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/DEPLOYMENT.md).
+  - `reliablepay-mock-bank`: Docker Web Service (`-Xmx256m -XX:+UseSerialGC`)
+  - `reliablepay-payment-service`: Docker Web Service (`-Xmx256m -XX:+UseSerialGC`)
+  - Strict startup validation: Services fail immediately if `ADMIN_USERNAME`, `ADMIN_PASSWORD`, or `AUTH_TOKEN_SECRET` are unset.
+- **Vercel Frontend (`frontend/vercel.json`)**: Single-Page App rewrites so `/app` and `/admin/*` routes work on direct visit and refresh.
+- **Cold-Start Polling Script (`scripts/wake.ps1`)**: Automatically issues wake-up calls and monitors health endpoints with timestamps until services report `UP`. Detailed click-by-click instructions are documented in [docs/DEPLOYMENT.md](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/DEPLOYMENT.md).
 
 ---
 
@@ -269,7 +280,7 @@ ReliablePay's architectural choices are grounded in three base research papers:
 In accordance with academic rigor, the prototype maintains clear scope boundaries:
 1. **HTTP REST Abstraction**: Core banking protocol is modeled over HTTP/JSON with simulated network failure modes rather than binary ISO 8583 / ISO 20022 raw socket framing.
 2. **Zero Credential Custody**: System does not ingest, store, or process PANs, CVVs, or cardholder credentials. All transactions use reference IDs, operating outside PCI-DSS CDE scope.
-3. **Shared Token Admin Guard**: Administrative mutations (`/api/admin/*`, `/bank/admin/*`, chaos sliders) are protected by a static secret header (`X-Admin-Token`) rather than full OAuth 2.0 / OIDC asymmetric JWT validation.
+3. **Admin Authentication**: Administrative operations (`/api/admin/*`, `/api/chaos`, etc.) are secured via HMAC-SHA256 signed JWT session tokens issued via `POST /api/auth/admin/login` (with backward-compatible support for `X-Admin-Token` automation).
 4. **Eventual Consistency Trade-Off**: Reconciliation resolves `UNKNOWN` payments via status polling after a configurable grace period (default 6,000 ms), introducing recovery latency (MTTR ~15–25s) in exchange for mathematical guarantee of zero duplicate debits.
 
 ---

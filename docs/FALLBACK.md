@@ -1,6 +1,6 @@
-# ReliablePay — Local Demonstration Fallback Guide
+# ReliablePay — Local Demonstration Fallback Guide (Review 3 Evaluation)
 
-If cloud infrastructure (Render or Vercel) experiences network outages, cold start timeouts, or free-tier rate limiting during the review, execute this **Local Docker Compose Fallback** to run the complete end-to-end system on localhost in under 2 minutes.
+If cloud infrastructure (Render or Vercel) experiences network outages, cold start timeouts, or free-tier rate limiting during Review 3, execute this **Local Docker Compose Fallback** to run the complete end-to-end system on localhost in under 90 seconds.
 
 ---
 
@@ -20,8 +20,13 @@ This starts 4 containers in the background:
 - `payment-service`: ReliablePay Core Engine on port `8080` (Spring Boot 3.3)
 
 ### Step 2: Verify Backend Readiness
-Run a quick health check to verify both microservices are operational:
+Run the automated wake script:
 
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/wake.ps1 -PaymentServiceUrl http://localhost:8080 -MockBankUrl http://localhost:8081
+```
+
+Or verify with manual curl commands:
 ```bash
 # Payment Service Health
 curl -s http://localhost:8080/actuator/health
@@ -83,7 +88,7 @@ BENCHMARK EVALUATION RESULTS
 NAIVE Duplicate Orders:     14 debited multiple times (₹1800.00 lost)
 PROTECTED Duplicate Orders: 0 (Zero financial loss: ₹0.00)
 Prevented Overcharges:      ₹1800.00
-Direct Comparison URL:      http://localhost:5173/compare/<uuid>
+Direct Comparison URL:      http://localhost:5173/admin/compare/<uuid>
 ======================================================================
 ```
 
@@ -91,12 +96,15 @@ Direct Comparison URL:      http://localhost:5173/compare/<uuid>
 
 ## 3. Direct Fallback Navigation Links
 
-Once the local stack is running, all presentation features work identically to the cloud deployment:
+Once the local stack is running, all Review 3 features work identically to the cloud deployment:
 
 - **Executive Landing Page**: [http://localhost:5173/](http://localhost:5173/)
-- **Operational Dashboard & Drawer**: [http://localhost:5173/dashboard](http://localhost:5173/dashboard)
-- **Chaos Engineering Lab**: [http://localhost:5173/lab](http://localhost:5173/lab)
-- **Side-by-Side Protocol Compare**: [http://localhost:5173/compare](http://localhost:5173/compare)
+- **Customer Mobile PWA**: [http://localhost:5173/app](http://localhost:5173/app)
+- **Admin Console Login**: [http://localhost:5173/admin/login](http://localhost:5173/admin/login)
+- **Admin Live Pipeline Monitor**: [http://localhost:5173/admin](http://localhost:5173/admin)
+- **Payments Transactions Ledger & Drawer**: [http://localhost:5173/admin/payments](http://localhost:5173/admin/payments)
+- **Chaos Engineering Lab**: [http://localhost:5173/admin/lab](http://localhost:5173/admin/lab)
+- **Side-by-Side Protocol Compare**: [http://localhost:5173/admin/compare](http://localhost:5173/admin/compare)
 - **OpenAPI 3.0 / Swagger UI**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 
 ---
