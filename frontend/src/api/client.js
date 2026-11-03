@@ -21,7 +21,6 @@ export function getAdminHeaders() {
   const headers = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-    headers['X-Admin-Token'] = token;
   }
   return headers;
 }

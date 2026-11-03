@@ -44,7 +44,6 @@
      - Import repository `Reliablepay`, set **Root Directory** to `frontend`.
      - Add environment variable:
        - `VITE_API_BASE_URL` = `https://reliablepay-payment-service.onrender.com`
-       - `VITE_ADMIN_TOKEN` = `<your-secure-admin-token>`
      - Click **Deploy**.
 
 ---
