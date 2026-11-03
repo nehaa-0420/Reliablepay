@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Lock, User, ArrowRight, AlertCircle, Sparkles, Smartphone } from 'lucide-react';
+import { ShieldCheck, Lock, User, ArrowRight, AlertCircle, Smartphone } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -147,23 +147,6 @@ export default function AdminLoginPage() {
                 Sign In to Console
               </Button>
             </form>
-
-            <div style={{
-              marginTop: '24px',
-              paddingTop: '20px',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.5
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                <Sparkles size={14} color="var(--color-brand-accent)" />
-                <span>Alliance University × Citi Evaluation</span>
-              </div>
-              <p style={{ margin: 0 }}>
-                Enter the administrative credentials configured in your environment via <code style={{ color: 'var(--color-brand-accent)', fontWeight: 600 }}>ADMIN_USERNAME</code> and <code style={{ color: 'var(--color-brand-accent)', fontWeight: 600 }}>ADMIN_PASSWORD</code>.
-              </p>
-            </div>
           </Card>
 
           <div style={{ textAlign: 'center', marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '16px', fontSize: '13px' }}>

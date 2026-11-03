@@ -6,7 +6,7 @@ const AdminAuthContext = createContext(null);
 
 export function AdminAuthProvider({ children }) {
   const [token, setToken] = useState(() => getAdminToken());
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState(() => localStorage.getItem('rp_admin_username') || '');
   const [isLoading, setIsLoading] = useState(false);
 
   const login = useCallback(async (user, pass) => {
@@ -16,6 +16,7 @@ export function AdminAuthProvider({ children }) {
       if (res && res.token) {
         setToken(res.token);
         setUsername(user);
+        localStorage.setItem('rp_admin_username', user);
         setAdminToken(res.token);
         return { success: true };
       }
@@ -32,6 +33,8 @@ export function AdminAuthProvider({ children }) {
 
   const logout = useCallback(() => {
     setToken(null);
+    setUsername('');
+    localStorage.removeItem('rp_admin_username');
     clearAdminToken();
   }, []);
 

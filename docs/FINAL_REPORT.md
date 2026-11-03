@@ -100,7 +100,7 @@ files generated
 
 ### B. Admin Login API (`POST /api/auth/admin/login`)
 ```powershell
-PS> curl.exe -s -X POST http://localhost:8080/api/auth/admin/login -H "Content-Type: application/json" -d '{\"username\":\"admin\",\"password\":\"adminpassword\"}'
+PS> curl.exe -s -X POST http://localhost:8080/api/auth/admin/login -H "Content-Type: application/json" -d '{\"username\":\"admin\",\"password\":\"<your-admin-password>\"}'
 {"expiresAt":"2026-11-02T21:41:11.206713194Z","tokenType":"Bearer","expiresIn":28800,"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc5MzYyNjg3MSwiZXhwIjoxNzkzNjU1NjcxfQ.5EU_ZHFHPFjhsurV9aRCfO_n2Hn_NyKBXMJPlpU2Qp0"}
 ```
 

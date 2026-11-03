@@ -13,7 +13,7 @@ Authenticates an administrator using environment-configured credentials (`ADMIN_
 ```json
 {
   "username": "admin",
-  "password": "adminpassword"
+  "password": "<your-admin-password>"
 }
 ```
 - **Responses**:
