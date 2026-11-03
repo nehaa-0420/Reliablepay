@@ -34,7 +34,7 @@ Render free-tier instances sleep when idle. Always wake the services before the 
    - Displays real elapsed duration so you know exactly when the backend is hot.
 
 2. **Option B (Browser Wake-up)**:
-   - Open `https://reliablepay-demo.vercel.app/` (or your active Vercel deployment URL).
+   - Open `https://<your-vercel-url>.vercel.app/` (or your active Vercel / local URL).
    - The top banner will display: `Engine Initializing... Waking cloud instance`.
    - Wait until the pill badge turns green: `Engine UP`.
 

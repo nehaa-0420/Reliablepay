@@ -50,9 +50,9 @@ ReliablePay has achieved **complete functional readiness** for Review 3. Buildin
 - Zero duplicate debits verified under 30% and 100% simulated bank timeouts.
 
 ### B. Public Cloud Endpoints (Render & Vercel)
-- **Render Payment Service**: `https://reliablepay-payment-service.onrender.com`
-- **Render Mock Bank**: `https://reliablepay-mock-bank.onrender.com`
-- **Vercel Frontend**: `https://reliablepay-demo.vercel.app`
+- **Render Payment Service**: `https://<your-payment-service-url>.onrender.com`
+- **Render Mock Bank**: `https://<your-mock-bank-url>.onrender.com`
+- **Vercel Frontend**: `https://<your-vercel-url>.vercel.app`
 - **Observation / Status**: Probing the public cloud subdomains returned HTTP 404 (`x-render-routing: no-server` from Cloudflare and `DEPLOYMENT_NOT_FOUND` from Vercel). The application code, Render Blueprint (`render.yaml`), Dockerfiles, and Vercel configuration are 100% prepared; live hosting becomes active once the user connects their GitHub repository in their personal Render and Vercel dashboards. Complete click-by-click instructions are provided in [`docs/DEPLOYMENT.md`](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/DEPLOYMENT.md).
 
 ---

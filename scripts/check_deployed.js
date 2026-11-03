@@ -1,10 +1,15 @@
 // scripts/check_deployed.js
 // Probe deployed cloud instances on Render & Vercel with 90s timeout and 3 retries
 
-const RENDER_PAYMENT = 'https://reliablepay-payment-service.onrender.com';
-const RENDER_BANK = 'https://reliablepay-mock-bank.onrender.com';
-const VERCEL_FRONTEND = 'https://reliablepay-demo.vercel.app';
-const VERCEL_FALLBACK = 'https://reliablepay-frontend.vercel.app';
+const RENDER_PAYMENT = process.env.PAYMENT_SERVICE_URL;
+const RENDER_BANK = process.env.MOCK_BANK_URL;
+const VERCEL_FRONTEND = process.env.VERCEL_URL || process.env.VITE_PUBLIC_APP_URL;
+
+if (!RENDER_PAYMENT || !RENDER_BANK || !VERCEL_FRONTEND) {
+  console.error('ERROR: Missing required environment variables.');
+  console.error('Please set PAYMENT_SERVICE_URL, MOCK_BANK_URL, and VERCEL_URL before running.');
+  process.exit(1);
+}
 
 async function fetchWithRetry(url, options = {}, retries = 3, timeoutMs = 90000) {
   for (let attempt = 1; attempt <= retries; attempt++) {

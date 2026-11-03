@@ -1,9 +1,17 @@
 param (
-    [string]$PaymentServiceUrl = $(if ($env:PAYMENT_SERVICE_URL) { $env:PAYMENT_SERVICE_URL } else { "https://reliablepay-payment-service.onrender.com" }),
-    [string]$MockBankUrl = $(if ($env:MOCK_BANK_URL) { $env:MOCK_BANK_URL } else { "https://reliablepay-mock-bank.onrender.com" }),
+    [string]$PaymentServiceUrl = $env:PAYMENT_SERVICE_URL,
+    [string]$MockBankUrl = $env:MOCK_BANK_URL,
     [int]$TimeoutSeconds = 180,
     [int]$IntervalSeconds = 3
 )
+
+if (-not $PaymentServiceUrl -or -not $MockBankUrl) {
+    Write-Host "ERROR: Missing required service URLs." -ForegroundColor Red
+    Write-Host "Usage:" -ForegroundColor Yellow
+    Write-Host "  .\wake.ps1 -PaymentServiceUrl <payment-url> -MockBankUrl <mock-bank-url>" -ForegroundColor Yellow
+    Write-Host "  or set `$env:PAYMENT_SERVICE_URL and `$env:MOCK_BANK_URL environment variables." -ForegroundColor Yellow
+    exit 1
+}
 
 $PaymentServiceUrl = $PaymentServiceUrl.TrimEnd('/')
 $MockBankUrl = $MockBankUrl.TrimEnd('/')

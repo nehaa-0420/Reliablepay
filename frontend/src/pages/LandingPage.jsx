@@ -212,9 +212,7 @@ export default function LandingPage() {
               <QRCodeSVG
                 value={
                   import.meta.env.VITE_PUBLIC_APP_URL ||
-                  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-                    ? `${window.location.origin}/app`
-                    : 'https://reliablepay-demo.vercel.app/app')
+                  (typeof window !== 'undefined' ? `${window.location.origin}/app` : '/app')
                 }
                 size={70}
                 level="M"
@@ -228,6 +226,13 @@ export default function LandingPage() {
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Scan to launch simulated PWA at <code>/app</code>
               </div>
+              {typeof window !== 'undefined' &&
+                (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+                !import.meta.env.VITE_PUBLIC_APP_URL && (
+                  <div style={{ fontSize: '0.74rem', color: 'var(--color-warning, #f59e0b)', marginTop: '4px', fontWeight: 500 }}>
+                    set VITE_PUBLIC_APP_URL so phones can open this
+                  </div>
+              )}
             </div>
           </motion.div>
 

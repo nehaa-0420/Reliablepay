@@ -4,37 +4,37 @@ This document provides complete instructions for deploying ReliablePay to cloud 
 
 ---
 
-## 1. System Architecture & URLs
+## 1. System Architecture & Placement
 
 ```
                   ┌──────────────────────────────────────────────┐
                   │         Vercel (React 18 + Vite)             │
-                  │   https://reliablepay-demo.vercel.app        │
+                  │        https://<your-vercel-url>             │
                   │   Routes: / (Landing), /app (PWA), /admin    │
                   └───────────────────────┬──────────────────────┘
                                           │ HTTPS (CORS)
                                           ▼
                   ┌──────────────────────────────────────────────┐
                   │       Render: reliablepay-payment-service    │
-                  │  https://reliablepay-payment-service.onrender │
+                  │       https://<your-payment-url>             │
                   │  Spring Boot 3.3 (JVM: -Xmx256m SerialGC)    │
                   └───────────────┬──────────────────────────────┘
                                   │
          ┌────────────────────────┴────────────────────────┐
-         │ HTTPS (Public URL)                              │ JDBC / TLS
+         │ HTTPS (Public HTTPS URL via MOCK_BANK_URL)      │ JDBC / TLS
          ▼                                                 ▼
 ┌─────────────────────────────────────┐   ┌────────────────────────────────────┐
 │      Render: reliablepay-mock-bank  │   │     Render: reliablepay-db         │
-│ https://reliablepay-mock-bank...    │   │   Managed PostgreSQL 16 (Free)     │
+│       https://<your-bank-url>       │   │   Managed PostgreSQL 16 (Free)     │
 │ Spring Boot 3.3 (JVM: -Xmx256m)     │   │   Schemas: `public` & `bank`       │
 └──────────────────┬──────────────────┘   │   Flyway V1 migrations auto-run    │
                    │ JDBC / TLS           └─────────────────▲──────────────────┘
                    └────────────────────────────────────────┘
 ```
 
-- **Frontend (Vercel)**: `https://<your-vercel-app>.vercel.app`
-- **Payment Service (Render)**: `https://reliablepay-payment-service.onrender.com`
-- **Mock Bank (Render)**: `https://reliablepay-mock-bank.onrender.com`
+- **Frontend (Vercel)**: `https://<your-vercel-url>`
+- **Payment Service (Render)**: `https://<your-payment-service-url>`
+- **Mock Bank (Render)**: `https://<your-mock-bank-url>`
 - **PostgreSQL Database (Render)**: `reliablepay-db` (Postgres 16, hosted on Render)
 
 ---
@@ -45,111 +45,115 @@ This document provides complete instructions for deploying ReliablePay to cloud 
 | :--- | :---: | :--- |
 | **RAM** | 512 MB per service | Configured `JAVA_TOOL_OPTIONS="-Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m"` in `render.yaml` and Dockerfiles. Keeps total container RSS < 400 MB. |
 | **CPU** | 0.1 vCPU (shared) | `-XX:+UseSerialGC` minimizes thread count and memory allocator overhead on single-core instances. |
-| **Idle Sleep** | Sleeps after 15 min idle | Initial request takes ~50–80s to cold-start. Mitigated with `GET /api/system/wake`, UI `ColdStartBanner`, and `scripts/wake.ps1`. |
-| **Networking** | No free private network | `payment-service` communicates with `mock-bank` over its public HTTPS URL via `BANK_BASE_URL` / `MOCK_BANK_URL`. |
-| **PostgreSQL** | Expires after 30 days | Self-healing schema: Flyway migrations run automatically on container startup when connected to a fresh database. |
+| **Idle Sleep** | Sleeps after 15 min idle | Free-tier web services spin down after 15 minutes of inactivity; initial cold-start takes ~50–80s. Mitigated with `GET /api/system/wake`, UI `ColdStartBanner`, and `scripts/wake.ps1`. |
+| **Networking** | No free private network | On Render's free plan, inter-service private networking is not included. `payment-service` connects to `mock-bank` over its public HTTPS URL via `MOCK_BANK_URL` (no `:8081`, no `http://mock-bank`). |
+| **PostgreSQL** | Expires after 30 days | Free-tier databases expire after 30 days. When re-provisioning a new database, Flyway schema migrations run automatically on container startup. |
 
 ---
 
 ## 3. Environment Variables Reference
 
-### A. `reliablepay-payment-service` (Render)
-
+### Shared Variable Invariant
 > [!IMPORTANT]
-> **Startup Safety**: In production mode (`SPRING_PROFILES_ACTIVE: production`), `payment-service` **refuses to start** (`IllegalStateException`) if `ADMIN_USERNAME`, `ADMIN_PASSWORD`, or `AUTH_TOKEN_SECRET` are unset.
+> **Matching Secret Invariant**: `HttpBankClient` in `payment-service` attaches the `X-Admin-Token` header on all administrative requests to `mock-bank` (`/bank/admin/stats`, `/bank/admin/chaos`, `/bank/admin/reset`). `mock-bank` validates incoming tokens in `BankAdminTokenInterceptor`. Therefore, **`ADMIN_TOKEN` MUST have the EXACT SAME value in both `reliablepay-payment-service` and `reliablepay-mock-bank`**. If they differ, payment-service will receive 401 when updating chaos or querying bank stats.
 
-| Variable | Required | Description | Example / Note |
-| :--- | :---: | :--- | :--- |
-| `DATABASE_URL` | Yes | PostgreSQL connection string from Render database | `postgres://user:pass@dpg-xxx.render.com:5432/reliablepay` (auto-converted to JDBC by `docker-entrypoint.sh`) |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Optional | Individual database connection parameters (used if `DATABASE_URL` is omitted) | Auto-injected from `reliablepay-db` |
-| `BANK_BASE_URL` | Yes | Public HTTPS URL of the deployed `reliablepay-mock-bank` | `https://reliablepay-mock-bank.onrender.com` |
-| `MOCK_BANK_URL` | Yes | Alias for `BANK_BASE_URL` | `https://reliablepay-mock-bank.onrender.com` |
-| `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated list of allowed frontend origins (no trailing slashes) | `https://reliablepay-demo.vercel.app,http://localhost:5173` |
-| `ADMIN_USERNAME` | Yes | Admin username for `POST /api/auth/admin/login` | Set by you in Render Dashboard |
-| `ADMIN_PASSWORD` | Yes | Admin password for `POST /api/auth/admin/login` | Set by you in Render Dashboard |
-| `AUTH_TOKEN_SECRET` | Yes | HMAC-SHA256 signing secret (at least 32 characters) | Set by you in Render Dashboard (e.g. 64-char hex string) |
-| `ADMIN_TOKEN` | Optional | Shared token for script automation and legacy `X-Admin-Token` header support | Set by you in Render Dashboard |
-| `ADMIN_RESET_ENABLED` | No | Allows POST `/api/admin/reset` | `true` |
-| `REDIS_ENABLED` | No | Enables optional Redis cache layer (disabled on free tier) | `false` |
-| `SPRING_PROFILES_ACTIVE` | Yes | Activates production security profile | `production` |
-| `JAVA_TOOL_OPTIONS` | Yes | JVM memory constraints for 512MB RAM instance | `-Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m` |
+### Complete Variable Table
 
-### B. `reliablepay-mock-bank` (Render)
-
-| Variable | Required | Description | Example / Note |
-| :--- | :---: | :--- | :--- |
-| `DATABASE_URL` | Yes | PostgreSQL connection string from Render database | `postgres://user:pass@dpg-xxx.render.com:5432/reliablepay` |
-| `ADMIN_TOKEN` | Yes | Secret token guarding `/bank/admin/**` endpoints | Must match `ADMIN_TOKEN` in `payment-service` |
-| `JAVA_TOOL_OPTIONS` | Yes | JVM memory constraints for 512MB RAM instance | `-Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m` |
-
-### C. `reliablepay-frontend` (Vercel)
-
-| Variable | Required | Description | Example |
-| :--- | :---: | :--- | :--- |
-| `VITE_API_BASE_URL` | Yes | Public HTTPS URL of the payment-service (no trailing slash) | `https://reliablepay-payment-service.onrender.com` |
-| `VITE_ADMIN_TOKEN` | Optional | Admin token passed in `X-Admin-Token` header | Must match backend `ADMIN_TOKEN` |
-| `VITE_PUBLIC_APP_URL` | Optional | Public URL of mobile app encoded in landing page QR code | `https://reliablepay-demo.vercel.app/app` |
+| Service | Variable Name | Purpose | Required | Placeholder / Example |
+| :--- | :--- | :--- | :---: | :--- |
+| **payment-service** | `DATABASE_URL` | PostgreSQL connection string from Render managed DB | Yes | Injected from `reliablepay-db` |
+| **payment-service** | `MOCK_BANK_URL` | Public HTTPS URL of the deployed mock-bank (no `:8081`, no `http://`) | Yes | `https://<your-mock-bank-url>.onrender.com` |
+| **payment-service** | `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed frontend origins (no trailing slash) | Yes | `https://<your-vercel-url>.vercel.app,http://localhost:5173` |
+| **payment-service** | `ADMIN_USERNAME` | Username for administrator login (`POST /api/auth/admin/login`) | Yes | `<your-admin-username>` (e.g. `admin`) |
+| **payment-service** | `ADMIN_PASSWORD` | Password for administrator login (`POST /api/auth/admin/login`) | Yes | `<your-strong-password>` (never commit or use default) |
+| **payment-service** | `AUTH_TOKEN_SECRET` | HMAC-SHA256 signing secret for JWT tokens (min 32 bytes) | Yes | `<64-char-hex-secret>` (generated via PowerShell snippet) |
+| **payment-service** | `ADMIN_TOKEN` | Shared secret token for mock-bank admin endpoints and script automation | Yes | `<your-shared-admin-token>` (must match mock-bank) |
+| **payment-service** | `ADMIN_RESET_ENABLED` | Enables `POST /api/admin/reset` endpoint | No | `true` |
+| **payment-service** | `REDIS_ENABLED` | Enables optional Redis cache layer (disabled on free tier) | No | `false` |
+| **payment-service** | `SPRING_PROFILES_ACTIVE`| Activates production profile with startup safety checks | Yes | `production` |
+| **payment-service** | `JAVA_TOOL_OPTIONS` | Memory constraints for 512MB RAM instance | Yes | `-Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m` |
+| **mock-bank** | `DATABASE_URL` | PostgreSQL connection string from Render managed DB | Yes | Injected from `reliablepay-db` |
+| **mock-bank** | `ADMIN_TOKEN` | Secret token guarding `/bank/admin/**` endpoints | Yes | `<your-shared-admin-token>` (must match payment-service) |
+| **mock-bank** | `JAVA_TOOL_OPTIONS` | Memory constraints for 512MB RAM instance | Yes | `-Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m` |
+| **frontend (Vercel)** | `VITE_API_BASE_URL` | Public HTTPS URL of payment-service (no trailing slash) | Yes | `https://<your-payment-service-url>.onrender.com` |
+| **frontend (Vercel)** | `VITE_PUBLIC_APP_URL`| Public URL of customer mobile app (encoded in Landing QR code) | Optional | `https://<your-vercel-url>.vercel.app/app` |
+| **frontend (Vercel)** | `VITE_ADMIN_TOKEN` | Fallback admin token for legacy API routes | Optional | `<your-shared-admin-token>` |
 
 ---
 
-## 4. Click-by-Click Deployment Instructions
+## 4. Deployment Procedure & Order
 
-### Part 1: GitHub Repository Visibility & Connection
-1. Open your browser and navigate to `https://github.com/nehaa-0420/Reliablepay`.
-2. Ensure the repository is **Public** (or that Render and Vercel GitHub Apps have access if Private):
-   - Go to **Settings** -> Scroll down to **Danger Zone** -> Verify **Change repository visibility**.
-3. All code for Review 3 is committed and tagged on branch `main`.
+Follow this exact sequence to deploy cleanly:
 
-### Part 2: Render Backend & Database Deployment via Blueprint
-1. Open [dashboard.render.com](https://dashboard.render.com/) and log into your Render account.
-2. In the top navigation, click **New +** and select **Blueprint**.
-3. Under **Connect a repository**, choose `nehaa-0420/Reliablepay` (or click **Configure access** if permissions need to be granted).
-4. Render will inspect `render.yaml` and show:
-   - **Database**: `reliablepay-db` (PostgreSQL 16, Plan: Free)
-   - **Service 1**: `reliablepay-mock-bank` (Docker Web Service, Plan: Free)
-   - **Service 2**: `reliablepay-payment-service` (Docker Web Service, Plan: Free)
-5. Under **Environment Variables**, Render will prompt you to enter the `sync: false` variables:
-   - `ADMIN_USERNAME`: Enter your chosen admin username.
-   - `ADMIN_PASSWORD`: Enter your chosen secure admin password.
-   - `AUTH_TOKEN_SECRET`: Enter a 64-character random hexadecimal HMAC key (e.g. generated via `openssl rand -hex 32`).
-   - `ADMIN_TOKEN`: Enter a private automation secret token.
-   - `BANK_BASE_URL` & `MOCK_BANK_URL`: `https://reliablepay-mock-bank.onrender.com`.
-   - `CORS_ALLOWED_ORIGINS`: Enter `https://reliablepay-demo.vercel.app,http://localhost:5173` (update with your final Vercel URL once assigned).
-6. Click **Apply**.
-7. Render will provision the PostgreSQL database first, then build and deploy the Docker containers.
+```
+Step 1: Render Blueprint ──► Step 2: Vercel Frontend ──► Step 3: Cross-Link URLs ──► Step 4: Redeploy & Verify
+```
 
-### Part 3: Vercel Frontend Deployment
-1. Open [vercel.com](https://vercel.com/) and log into your account.
-2. Click **Add New...** -> **Project**.
-3. Select your GitHub repository (`Reliablepay`) and click **Import**.
-4. In the Project Configuration dialog:
+### Step 1: Deploy Backend Microservices & Database on Render
+1. Keep your repository **Private** for security.
+2. In [Render Dashboard](https://dashboard.render.com), go to **Account Settings** -> **GitHub** and grant Render access to your repository `Reliablepay` via the official Render GitHub App.
+3. Click **New +** -> select **Blueprint**.
+4. Connect repository `Reliablepay` (branch `main`).
+5. Render reads `render.yaml` and prepares 3 resources: `reliablepay-db`, `reliablepay-mock-bank`, and `reliablepay-payment-service`.
+6. Enter the required non-synced (`sync: false`) variables:
+   - `ADMIN_USERNAME`: your admin username.
+   - `ADMIN_PASSWORD`: your confidential admin password.
+   - `AUTH_TOKEN_SECRET`: generate a secure 256-bit hex secret on your local machine using PowerShell:
+     ```powershell
+     $bytes = [byte[]]::new(32); [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); [System.BitConverter]::ToString($bytes).Replace('-', '').ToLower()
+     ```
+     *(This outputs a 64-character random hex string directly on screen without persisting it to disk).*
+   - `ADMIN_TOKEN`: generate a random secret string and enter the SAME value for both `payment-service` and `mock-bank`.
+   - `MOCK_BANK_URL`: temporarily leave empty or set to `https://reliablepay-mock-bank-<unique-id>.onrender.com` (Render reveals the actual assigned subdomain on initial provision).
+   - `CORS_ALLOWED_ORIGINS`: temporarily set to `http://localhost:5173`.
+7. Click **Apply**. Wait for Render to provision the database and build both containers. Note down the public HTTPS URLs assigned by Render for `reliablepay-payment-service` and `reliablepay-mock-bank`.
+8. Once `mock-bank` is assigned its URL, update `MOCK_BANK_URL` in `payment-service` with `https://<your-mock-bank-url>.onrender.com`.
+
+### Step 2: Deploy Frontend on Vercel
+1. Log into [Vercel](https://vercel.com/dashboard).
+2. Authorize the Vercel GitHub App to access your private `Reliablepay` repository.
+3. Click **Add New...** -> **Project**, then **Import** the repository.
+4. In Project Settings:
    - **Framework Preset**: `Vite`
-   - **Root Directory**: Click **Edit** and select `frontend` (crucial: Vite app lives in `frontend/`).
+   - **Root Directory**: click **Edit** and choose `frontend`.
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-5. Expand **Environment Variables**:
-   - `VITE_API_BASE_URL` = `https://reliablepay-payment-service.onrender.com` (no trailing slash).
-   - `VITE_PUBLIC_APP_URL` = `https://<your-project>.vercel.app/app`
-6. Click **Deploy**.
-7. Vercel will install dependencies, compile the PWA bundle, generate the service worker, and deploy to their edge CDN in ~45 seconds.
-8. Single Page App rewrites (`vercel.json`) ensure that direct visits or refreshes to `/app`, `/app/pay`, `/app/progress/:id`, `/admin`, `/admin/login`, etc., return `200 OK` rather than 404.
+5. In **Environment Variables**, add:
+   - `VITE_API_BASE_URL` = `https://<your-payment-service-url>.onrender.com`
+6. Click **Deploy**. Note down your assigned Vercel URL (e.g. `https://<your-vercel-url>.vercel.app`).
+
+### Step 3: Cross-Link URLs (CORS & Landing QR Code)
+Now that both public hostnames exist:
+1. In **Render** -> `reliablepay-payment-service` -> **Environment**:
+   - Update `CORS_ALLOWED_ORIGINS` to `https://<your-vercel-url>.vercel.app,http://localhost:5173`.
+2. In **Vercel** -> Settings -> **Environment Variables**:
+   - Add or update `VITE_PUBLIC_APP_URL` = `https://<your-vercel-url>.vercel.app/app`.
+
+### Step 4: Redeploy Both Services
+1. In Render, trigger a manual deploy on `reliablepay-payment-service` ("Clear build cache & deploy" or "Deploy latest commit").
+2. In Vercel, click **Redeploy** on the latest deployment so `VITE_PUBLIC_APP_URL` is baked into the client bundle and the Landing Page QR code.
 
 ---
 
 ## 5. Pre-Demo Wake-Up Routine (`scripts/wake.ps1`)
 
-Render free-tier instances sleep after 15 minutes of inactivity. Always wake the services before demonstration:
+Render free-tier instances spin down after 15 minutes of inactivity. Always wake up the backend before demonstration:
 
-1. **10 minutes before the review**, execute:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts/wake.ps1
-   ```
-2. The script dispatches cold-start triggers and polls `/actuator/health` every 3 seconds until both report `UP`.
-3. Expected cold-boot duration: **55 – 82 seconds**. Once hot, all subsequent API responses return within **15 – 35 ms**.
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/wake.ps1 -PaymentServiceUrl "https://<your-payment-service-url>.onrender.com" -MockBankUrl "https://<your-mock-bank-url>.onrender.com"
+```
+Or set environment variables in your shell:
+```powershell
+$env:PAYMENT_SERVICE_URL = "https://<your-payment-service-url>.onrender.com"
+$env:MOCK_BANK_URL       = "https://<your-mock-bank-url>.onrender.com"
+powershell -ExecutionPolicy Bypass -File scripts/wake.ps1
+```
+
+The script polls `/actuator/health` on both services until both report `UP`. Cold start duration is typically **50 – 80 seconds**. Once warm, all API requests respond within **15 – 35 ms**.
 
 ---
 
-## 6. Honest History & Prior Review Track Record
+## 6. Historical Track Record
 - **Review 1**: Core 7-state payment engine, PostgreSQL ACID idempotency locks, background retry and status enquiry reconciliation workers.
 - **Review 2**: High-fidelity fintech UI redesign, accessible WCAG 2.1 AA design system tokens, side-by-side empirical benchmark runner proving 0 duplicate debits under 30% timeout chaos.
 - **Review 3 (Current)**: Customer Mobile PWA (`/app`) with offline support and client retry demo; Admin Console (`/admin`) with JWT authentication and real-time SSE Live Pipeline Monitor; Stale `PROCESSING` automatic recovery worker; production deployment manifests on Render & Vercel.

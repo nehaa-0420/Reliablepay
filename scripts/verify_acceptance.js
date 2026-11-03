@@ -84,16 +84,16 @@ async function testHealthAndWakeEndpoints() {
     console.log('Authorized /api/admin/reset: Skipped destructive purge to preserve database records (set TEST_RESET=true to execute)');
   }
 
-  // CORS Preflight
+  const testOrigin = process.env.VERCEL_URL || 'http://localhost:5173';
   const corsPreflight = await fetch(`${PAYMENT_SERVICE}/api/payments`, {
     method: 'OPTIONS',
     headers: {
-      'Origin': 'https://reliablepay-demo.vercel.app',
+      'Origin': testOrigin,
       'Access-Control-Request-Method': 'POST',
       'Access-Control-Request-Headers': 'Content-Type, Idempotency-Key'
     }
   });
-  console.log(`CORS Preflight (Origin: https://reliablepay-demo.vercel.app) -> HTTP ${corsPreflight.status}`);
+  console.log(`CORS Preflight (Origin: ${testOrigin}) -> HTTP ${corsPreflight.status}`);
   console.log('Access-Control-Allow-Origin:', corsPreflight.headers.get('access-control-allow-origin'));
   console.log('Access-Control-Allow-Methods:', corsPreflight.headers.get('access-control-allow-methods'));
 }

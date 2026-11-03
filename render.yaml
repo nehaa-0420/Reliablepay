@@ -74,8 +74,6 @@ services:
         fromDatabase:
           name: reliablepay-db
           property: password
-      - key: BANK_BASE_URL
-        sync: false
       - key: MOCK_BANK_URL
         sync: false
       - key: CORS_ALLOWED_ORIGINS
