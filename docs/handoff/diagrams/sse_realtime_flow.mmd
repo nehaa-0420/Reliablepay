@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    actor Mobile as Customer Mobile App<br/>(/app/progress/:id)
+    actor Admin as Admin Console<br/>(/admin/live-monitor)
+    participant Hub as PaymentEventHub<br/>(Spring SseEmitter Pool)
+    participant SM as PaymentStateMachine<br/>(@Transactional)
+    participant DB as PostgreSQL 16<br/>(payments & payment_events)
+
+    Note over Mobile,Hub: 1. Client Subscriptions (SSE Handshake)
+    Mobile->>Hub: GET /api/payments/{id}/stream<br/>Accept: text/event-stream
+    Hub-->>Mobile: event: snapshot<br/>data: { id: "pay-1", status: "INITIATED", amount: 500 }
+
+    Admin->>Hub: GET /api/admin/stream<br/>Authorization: Bearer <jwt-token>
+    Hub-->>Admin: event: snapshot<br/>data: { statusCounts: { INITIATED: 1, ... }, recentEvents: [...] }
+
+    Note over SM,DB: 2. State Transition & After-Commit Dispatch
+    SM->>DB: UPDATE payments SET status = 'PROCESSING'<br/>INSERT INTO payment_events (...)
+    Note over SM: Transaction Synchronization:<br/>registerSynchronization(afterCommit)
+    DB-->>SM: Transaction COMMIT Successful!
+    
+    SM->>Hub: eventHub.publishTransition(eventPayload)<br/>Strictly AFTER DB Commit
+
+    Note over Hub,Admin: 3. Real-Time Broadcast to Active Streams
+    Hub-->>Mobile: event: transition<br/>data: { paymentId: "pay-1", from: "INITIATED", to: "PROCESSING" }
+    Hub-->>Admin: event: transition<br/>data: { paymentId: "pay-1", to: "PROCESSING", statusCounts: {...} }
+
+    Note over Mobile: Customer UI updates progress bar<br/>without full page reload!
+    Note over Admin: Admin Live Pipeline counters tick up<br/>in real time!
+
+    Note over Hub,Admin: 4. Subsequent Transition (e.g. UNKNOWN -> SUCCESS)
+    SM->>DB: UPDATE payments SET status = 'SUCCESS'<br/>COMMIT
+    SM->>Hub: eventHub.publishTransition(...)
+    Hub-->>Mobile: event: transition<br/>data: { to: "SUCCESS", detail: "Reconciled with bank" }
+    Hub-->>Admin: event: transition<br/>data: { to: "SUCCESS", statusCounts: {...} }
+    
+    Mobile->>Hub: Close Stream (Terminal state reached)
+
+    Note over Mobile,Hub: 5. Network Resiliency & Proxy Fallback
+    opt Reverse Proxy Buffering or Connection Drop
+        Mobile--xHub: Stream disconnected
+        Mobile->>Mobile: Fallback to HTTP Polling<br/>(GET /api/payments/{id} every 2s)
+        Mobile->>Hub: Reconnect SSE with exponential backoff
+    end

@@ -1,0 +1,56 @@
+{
+  "id": "ed7918c9-986f-44c3-b918-ead0da98d6c1",
+  "status": "DONE",
+  "errorMessage": null,
+  "durationMs": 70087,
+  "config": {
+    "count": 60,
+    "concurrency": 10,
+    "duplicateSubmitRate": 0.2,
+    "chaos": {
+      "timeoutRate": 0.3,
+      "errorRate": 0.1,
+      "channelFailureRate": 0,
+      "chargeOnTimeoutProbability": 0.5,
+      "latencyMs": 500
+    }
+  },
+  "naive": {
+    "orders": 60,
+    "paymentsCreated": 72,
+    "success": 69,
+    "deadLettered": 3,
+    "stuckUnknown": 0,
+    "duplicateOrdersCount": 19,
+    "overchargedAmount": 2600,
+    "retrySuccessRate": 0.9032258064516129,
+    "avgRecoveryMs": 23497.039321428572,
+    "avgLatencyMs": 604.4227642276422,
+    "p95LatencyMs": 2005,
+    "ordersSucceeded": 57,
+    "ordersFailed": 3
+  },
+  "protectedMode": {
+    "orders": 60,
+    "paymentsCreated": 60,
+    "success": 60,
+    "deadLettered": 0,
+    "stuckUnknown": 0,
+    "duplicateOrdersCount": 0,
+    "overchargedAmount": 0,
+    "retrySuccessRate": 1,
+    "avgRecoveryMs": 21492.788533333332,
+    "avgLatencyMs": 573.797619047619,
+    "p95LatencyMs": 2004,
+    "ordersSucceeded": 60,
+    "ordersFailed": 0
+  },
+  "delta": {
+    "paymentsCreatedDelta": 12,
+    "duplicateOrdersDelta": 19,
+    "overchargedAmountDelta": 2600,
+    "ordersSucceededDelta": 3,
+    "deadLetteredDelta": 3,
+    "stuckUnknownDelta": 0
+  }
+}

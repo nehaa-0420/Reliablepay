@@ -1,0 +1,33 @@
+stateDiagram-v2
+    [*] --> INITIATED: POST /api/payments<br/>(Idempotency Key Validated)
+    
+    INITIATED --> PROCESSING: Background Worker Claim<br/>(FOR UPDATE SKIP LOCKED)
+    
+    PROCESSING --> SUCCESS: Bank HTTP 200 OK<br/>(Charged = true)
+    PROCESSING --> RETRYING: Recoverable Failure (500 / 503)<br/>(Retry Budget Remaining)
+    PROCESSING --> UNKNOWN: Ambiguous Client Timeout<br/>(Read Timed Out in Transit)
+    PROCESSING --> FAILED: Non-Retryable Client Error<br/>(HTTP 4xx / Invalid Details)
+    PROCESSING --> DEAD_LETTERED: Retry Budget Exhausted<br/>(Terminal Failure)
+
+    RETRYING --> PROCESSING: Next Retry Due<br/>(Exponential Backoff + Full Jitter)
+    RETRYING --> DEAD_LETTERED: Max Attempts Exceeded<br/>(Default: 4 attempts)
+
+    UNKNOWN --> SUCCESS: Reconciled with Bank<br/>(Status Enquiry: charged == true)
+    UNKNOWN --> RETRYING: Reconciled with Bank<br/>(Status Enquiry: charged == false & count == 0)
+    UNKNOWN --> FAILED: Reconciled with Bank<br/>(Non-Retryable Gateway Failure)
+
+    SUCCESS --> [*]
+    FAILED --> [*]
+    DEAD_LETTERED --> [*]
+
+    note right of UNKNOWN
+        Held in grace period (default: 6,000ms)
+        to allow slow in-flight bank settlement.
+        Never retried blindly without status check.
+    end note
+
+    note left of RETRYING
+        Backoff Delay = random(0, baseDelay * 2^attempt)
+        Avoids thundering herd problem
+        on bank recovery.
+    end note

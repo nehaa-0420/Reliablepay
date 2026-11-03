@@ -1,0 +1,76 @@
+erDiagram
+    %% Public Schema (payment-service)
+    batches ||--o{ payments : "contains"
+    payments ||--o{ payment_events : "emits"
+    payments ||--o{ payment_attempts : "records"
+
+    batches {
+        uuid id PK
+        varchar mode
+        int total
+        timestamptz created_at
+    }
+
+    payments {
+        uuid id PK
+        varchar merchant_ref
+        numeric amount
+        varchar currency
+        varchar status
+        varchar mode
+        uuid batch_id FK
+        varchar idempotency_key UK
+        varchar request_hash
+        int attempt_count
+        timestamptz next_retry_at
+        text last_error
+        bigint version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    payment_events {
+        bigserial id PK
+        uuid payment_id FK
+        varchar from_status
+        varchar to_status
+        text detail
+        timestamptz created_at
+    }
+
+    payment_attempts {
+        bigserial id PK
+        uuid payment_id FK
+        int attempt_no
+        varchar outcome
+        int latency_ms
+        varchar error_code
+        timestamptz created_at
+    }
+
+    idempotency_keys {
+        varchar key PK
+        varchar request_hash
+        int response_status
+        text response_body
+        timestamptz created_at
+        timestamptz expires_at
+    }
+
+    %% Bank Schema (mock-bank - ground truth)
+    bank_charges {
+        bigserial id PK
+        varchar payment_ref
+        varchar order_ref
+        numeric amount
+        timestamptz created_at
+    }
+
+    chaos_config {
+        int id PK
+        double timeout_rate
+        double error_rate
+        double channel_failure_rate
+        double charge_on_timeout_probability
+        int latency_ms
+    }

@@ -8,7 +8,9 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 [![React](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61dafb.svg)](https://vitejs.dev/)
 [![Docker](https://img.shields.io/badge/Docker%20Compose-Ready-2496ed.svg)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-44%20Passing%20(100%25)-success.svg)](backend)
+[![Tests](https://img.shields.io/badge/Tests-78%20Passing%20(100%25)-success.svg)](backend)
+
+> 📘 **Team Handoff & Viva Preparation**: Non-coders, report authors, and presentation leads should start at **[docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)**. For verified empirical metrics, see **[docs/handoff/FACTS_SHEET.md](docs/handoff/FACTS_SHEET.md)**.
 
 ---
 
@@ -189,6 +191,52 @@ node scripts/prepare_demo.js
 ```bash
 # Validates health checks, concurrent double-submit idempotency, and side-by-side data
 node scripts/verify_acceptance.js
+```
+
+### Environment Variables Reference (Names Only — Never Commit Values)
+
+| Service | Environment Variable Name | Purpose |
+|:---|:---|:---|
+| **payment-service** | `ADMIN_USERNAME` | Admin authentication username (mandatory outside local) |
+| **payment-service** | `ADMIN_PASSWORD` | Admin authentication password hash / credential (mandatory outside local) |
+| **payment-service** | `AUTH_TOKEN_SECRET` | HMAC-SHA256 signing key for JWT tokens (mandatory outside local) |
+| **payment-service** | `ADMIN_TOKEN` | Static admin token for automated worker endpoints (optional fallback) |
+| **payment-service** | `MOCK_BANK_URL` | Upstream bank service base URL |
+| **payment-service** | `CORS_ALLOWED_ORIGINS` | Comma-delimited list of allowed browser origins |
+| **payment-service** | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | PostgreSQL connection coordinates |
+| **payment-service** | `SPRING_PROFILES_ACTIVE` | Active Spring profile (`local`, `docker`, or `prod`) |
+| **mock-bank** | `ADMIN_TOKEN` | Admin token guard for chaos config mutation |
+| **mock-bank** | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | PostgreSQL connection coordinates (bank schema) |
+| **frontend** | `VITE_API_URL` | Base API target URL for HTTP/SSE client |
+
+> ⚠️ **Security Rule**: Never put secrets in `VITE_*` environment variables. All `VITE_*` variables are statically embedded into client JavaScript bundles and are visible to anyone inspecting the page.
+
+### Test Commands Reference
+
+Run any test suite with these verified commands:
+
+```bash
+# 1. Payment Service Unit & Integration Tests (69 tests)
+cd backend/payment-service
+mvn test
+
+# 2. Mock Bank Gateway & Chaos Tests (9 tests)
+cd backend/mock-bank
+mvn test
+
+# 3. Frontend Production Build & Bundle Validation
+cd frontend
+npm ci
+npm run build
+
+# 4. End-to-End Acceptance Verification (Double-Submit & Idempotency)
+node scripts/verify_acceptance.js
+
+# 5. Triplicate Demo Benchmark Evaluation (NAIVE vs PROTECTED)
+node scripts/run_handoff_benchmarks.js
+
+# 6. High-Throughput Load Stress Test (100 VUs)
+node scripts/load_test.js
 ```
 
 ---

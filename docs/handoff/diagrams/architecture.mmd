@@ -1,0 +1,73 @@
+graph TB
+    subgraph Client Tier ["Client Tier (Browser / PWA / Automation)"]
+        Mobile["Customer Mobile PWA<br/><i>/app (390x844 Shell / Standalone)</i>"]
+        Admin["Admin Console<br/><i>/admin (Live Monitor & System Control)</i>"]
+        Landing["Landing Page & QR Portal<br/><i>/ (Open PWA / Admin / Docs)</i>"]
+        Stress["Load Testing / Sweeps<br/><i>scripts/load_test.js & scripts/parameter_sweep.js</i>"]
+    end
+
+    subgraph Service Tier ["ReliablePay Payment Service (Spring Boot 3.3.5 :8080)"]
+        direction TB
+        AuthCtrl["AdminAuthController<br/><i>POST /api/auth/admin/login (JWT)</i>"]
+        PayCtrl["PaymentController<br/><i>POST /api/payments (Idempotency)</i>"]
+        StreamHub["PaymentEventHub (SSE)<br/><i>GET /api/payments/{id}/stream<br/>GET /api/admin/stream</i>"]
+        ExpRunner["ExperimentService<br/><i>POST /api/experiments/run</i>"]
+        
+        subgraph Core Engine ["State Machine & Safety Pipeline"]
+            IdemSvc["IdempotencyService<br/><i>Unique Key + SHA-256 Digest</i>"]
+            SM["PaymentStateMachine<br/><i>7 Validated Lifecycle States</i>"]
+        end
+
+        subgraph Reliability Workers ["Background Reliability Workers"]
+            RetryWorker["PaymentRetryWorker<br/><i>Exponential Backoff + Full Jitter</i>"]
+            RecWorker["PaymentReconciliationWorker<br/><i>Status Enquiry (UNKNOWN -> SUCCESS)</i>"]
+            RecovWorker["PaymentRecoveryWorker<br/><i>Stale PROCESSING Recovery</i>"]
+        end
+    end
+
+    subgraph Bank Simulation ["Core Banking Switch Simulator (Mock Bank :8081)"]
+        BankAPI["BankController<br/><i>POST /bank/charge</i>"]
+        StatusAPI["BankStatusController<br/><i>GET /bank/status/{ref}</i>"]
+        ChaosEngine["ChaosEngine<br/><i>Timeouts, 500s, 503s, Latency</i>"]
+        GroundTruth[("Bank Ledger (Ground Truth)<br/><i>bank.bank_charges</i>")]
+    end
+
+    subgraph Database Tier ["PostgreSQL 16 (:5432)"]
+        DB_IDEM[("idempotency_keys<br/><i>key, request_hash, body</i>")]
+        DB_PAY[("payments<br/><i>status, mode, version, retry_at</i>")]
+        DB_EVT[("payment_events<br/><i>immutable audit log</i>")]
+        DB_ATT[("payment_attempts<br/><i>attempt_no, latency, outcome</i>")]
+    end
+
+    %% Client Interactions
+    Mobile -->|"POST /api/payments<br/>(Idempotency-Key)"| PayCtrl
+    Mobile -->|"GET /api/payments/{id}/stream"| StreamHub
+    Admin -->|"POST /api/auth/admin/login"| AuthCtrl
+    Admin -->|"GET /api/admin/stream (SSE)"| StreamHub
+    Stress -->|"Concurrent API Traffic"| PayCtrl
+
+    %% Internal Processing
+    PayCtrl --> IdemSvc
+    IdemSvc -->|"ACID Lock & Replay"| DB_IDEM
+    PayCtrl --> SM
+    SM -->|"Persist Transition"| DB_PAY
+    SM -->|"Append Audit Trail"| DB_EVT
+    SM -->|"Publish Real-time Event"| StreamHub
+
+    %% Worker Operations
+    RetryWorker -->|"Claim RETRYING (FOR UPDATE SKIP LOCKED)"| DB_PAY
+    RetryWorker -->|"Dispatch Charge"| BankAPI
+    RetryWorker -->|"Log Latency & Attempt"| DB_ATT
+
+    RecWorker -->|"Claim UNKNOWN (Past Grace)"| DB_PAY
+    RecWorker -->|"Status Enquiry (GET)"| StatusAPI
+    RecWorker -->|"Resolve Payment"| SM
+
+    RecovWorker -->|"Claim Stale PROCESSING"| DB_PAY
+    RecovWorker -->|"Mark UNKNOWN"| SM
+
+    %% Bank Simulation Operations
+    BankAPI --> ChaosEngine
+    ChaosEngine -->|"Debit Account"| GroundTruth
+    StatusAPI -->|"Query Settled Debits"| GroundTruth
+    ExpRunner -->|"Side-by-side Workload"| PayCtrl

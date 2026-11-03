@@ -1,0 +1,51 @@
+sequenceDiagram
+    autonumber
+    actor Customer as Customer / Mobile Client
+    participant API as PaymentService (API)
+    participant DB as PostgreSQL 16
+    participant Worker as Background Workers
+    participant Bank as Core Banking Switch (Mock Bank)
+
+    Note over Customer,Bank: Phase 1: Ingestion & Idempotency Leased
+    Customer->>API: POST /api/payments<br/>(Idempotency-Key: KEY-778, Order: ORD-99)
+    API->>DB: INSERT INTO idempotency_keys (key, hash)<br/>ACID Unique Constraint
+    API->>DB: INSERT INTO payments (status='INITIATED')
+    API->>DB: INSERT INTO payment_events (to_status='INITIATED')
+    API-->>Customer: HTTP 201 Created (id: pay-uuid-1, status: INITIATED)
+    
+    Customer->>API: GET /api/payments/{id}/stream (SSE)
+    API-->>Customer: event: snapshot { status: INITIATED }
+
+    Note over Customer,Bank: Phase 2: Dispatch & Ambiguous Timeout
+    Worker->>DB: SELECT FOR UPDATE SKIP LOCKED<br/>(status='INITIATED')
+    Worker->>DB: UPDATE payments SET status='PROCESSING'
+    Worker->>API: Publish SSE Transition
+    API-->>Customer: event: transition { status: PROCESSING }
+
+    Worker->>Bank: POST /bank/charge (ref: pay-uuid-1, amount: ₹500)
+    activate Bank
+    Note over Bank: Bank debits ledger account!<br/>INSERT INTO bank_charges (ref: pay-uuid-1)<br/>Bank sleeps 3500ms (Network delay)
+    Worker--xBank: Client Read Timeout (2000ms exceeded)<br/>SocketTimeoutException!
+    deactivate Bank
+
+    Note over Worker,DB: PROTECTED Protocol: Do NOT retry blindly!
+    Worker->>DB: UPDATE payments SET status='UNKNOWN',<br/>last_error='Bank read timed out: ambiguous state'
+    Worker->>DB: INSERT INTO payment_events (to_status='UNKNOWN')
+    Worker->>API: Publish SSE Transition
+    API-->>Customer: event: transition { status: UNKNOWN }
+    Note over Customer: UI shows "Verifying with bank..."<br/>No duplicate request sent!
+
+    Note over Customer,Bank: Phase 3: Reconciliation Window & Safe Resolution
+    Note over Worker: Payment held in UNKNOWN grace period<br/>(reconcile-grace-ms = 6,000ms)<br/>Allows slow bank transaction to settle
+    
+    Worker->>DB: SELECT FOR UPDATE SKIP LOCKED<br/>(status='UNKNOWN' AND updated_at + 6s < NOW())
+    Worker->>Bank: GET /bank/status/pay-uuid-1 (Status Enquiry)
+    Bank-->>Worker: HTTP 200 OK: { charged: true, count: 1 }
+
+    Note over Worker,DB: Bank confirmed charge: Settle payment cleanly
+    Worker->>DB: UPDATE payments SET status='SUCCESS', version = version + 1
+    Worker->>DB: INSERT INTO payment_events (to_status='SUCCESS', detail='Reconciled with bank: charge confirmed (count=1)')
+    Worker->>API: Publish SSE Transition
+    API-->>Customer: event: transition { status: SUCCESS }
+    
+    Note over Customer,Bank: Outcome: Terminal SUCCESS, exactly 1 bank charge, 0 duplicate debits!
