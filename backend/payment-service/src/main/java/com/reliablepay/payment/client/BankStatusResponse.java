@@ -7,14 +7,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class BankStatusResponse {
 
     private String paymentRef;
-    private boolean charged;
+    private Boolean charged;
     @JsonAlias({"chargeCount", "count"})
-    private long count;
+    private Long count;
 
     public BankStatusResponse() {
     }
 
-    public BankStatusResponse(String paymentRef, boolean charged, long count) {
+    public BankStatusResponse(String paymentRef, Boolean charged, Long count) {
         this.paymentRef = paymentRef;
         this.charged = charged;
         this.count = count;
@@ -24,11 +24,11 @@ public class BankStatusResponse {
         return paymentRef;
     }
 
-    public boolean charged() {
+    public Boolean charged() {
         return charged;
     }
 
-    public long count() {
+    public Long count() {
         return count;
     }
 
@@ -40,27 +40,31 @@ public class BankStatusResponse {
         this.paymentRef = paymentRef;
     }
 
-    public boolean isCharged() {
+    public Boolean getCharged() {
         return charged;
     }
 
-    public void setCharged(boolean charged) {
+    public Boolean isCharged() {
+        return charged;
+    }
+
+    public void setCharged(Boolean charged) {
         this.charged = charged;
     }
 
-    public long getCount() {
+    public Long getCount() {
         return count;
     }
 
-    public void setCount(long count) {
+    public void setCount(Long count) {
         this.count = count;
     }
 
-    public void setChargeCount(long chargeCount) {
+    public void setChargeCount(Long chargeCount) {
         this.count = chargeCount;
     }
 
     public boolean hasConfirmedCharge() {
-        return charged && count > 0;
+        return Boolean.TRUE.equals(charged) && count != null && count > 0;
     }
 }

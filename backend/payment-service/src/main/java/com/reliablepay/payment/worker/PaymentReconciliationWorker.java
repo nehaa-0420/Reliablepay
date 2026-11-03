@@ -102,7 +102,9 @@ public class PaymentReconciliationWorker {
                 log.warn("Null bank status response for payment {}, skipping cycle", paymentId);
                 return;
             }
-            log.info("Bank status for {}: charged={}, count={}", paymentId, bankStatus.charged(), bankStatus.count());
+            Boolean charged = bankStatus != null ? bankStatus.charged() : null;
+            Long count = bankStatus != null ? bankStatus.count() : null;
+            log.info("Bank status for {}: charged={}, count={}", paymentId, charged, count);
 
             // Step 3: Transition payment state in short transaction
             transactionTemplate.executeWithoutResult(status -> {
@@ -111,23 +113,35 @@ public class PaymentReconciliationWorker {
                     return;
                 }
 
-                if (bankStatus != null && bankStatus.charged() && bankStatus.count() > 0) {
-                    // Ground truth: bank already debited funds! Mark SUCCESS without second charge
+                if (Boolean.TRUE.equals(charged)) {
+                    // Rule 1: charged == true -> SUCCESS (log WARN if count is missing or < 1)
+                    if (count == null || count < 1) {
+                        log.warn("Reconciliation warning for payment {}: bank reported charged=true but count is missing or < 1 (count={})",
+                                paymentId, count);
+                    }
                     payment.setLastError(null);
                     payment.setNextRetryAt(null);
                     stateMachine.transition(payment, PaymentStatus.SUCCESS,
-                            "Reconciled with bank: charge confirmed (count=" + bankStatus.count() + ")");
+                            "Reconciled with bank: charge confirmed (count=" + (count != null ? count : "unknown") + ")");
                     paymentRepository.saveAndFlush(payment);
-                    log.info("Reconciliation RESOLVED payment {} to SUCCESS (count={})", paymentId, bankStatus.count());
-                } else {
-                    // Ground truth: bank was never charged or reported zero charges! Safe to retry immediately
-                    long reportedCount = bankStatus != null ? bankStatus.count() : 0;
-                    payment.setLastError("Reconciled with bank: charge not found (count=" + reportedCount + "); scheduled immediate retry");
+                    log.info("Reconciliation RESOLVED payment {} to SUCCESS (count={})", paymentId, count);
+
+                } else if (Boolean.FALSE.equals(charged) && count != null && count == 0L) {
+                    // Rule 2: charged == false and count is 0 -> RETRYING
+                    payment.setLastError("Reconciled with bank: charge not found (count=0); scheduled immediate retry");
                     payment.setNextRetryAt(Instant.now());
                     stateMachine.transition(payment, PaymentStatus.RETRYING,
                             "Reconciled with bank: charge not found; marked RETRYING for immediate retry");
                     paymentRepository.saveAndFlush(payment);
                     log.info("Reconciliation MOVED payment {} to RETRYING (immediate retry)", paymentId);
+
+                } else {
+                    // Rule 3: missing fields, or contradictory (charged == false but count > 0) -> keep UNKNOWN, log ERROR, do NOT retry
+                    log.error("Reconciliation anomaly for payment {}: contradictory or missing bank status fields (charged={}, count={}). Keeping UNKNOWN, no retry scheduled.",
+                            paymentId, charged, count);
+                    payment.setLastError("Reconciliation anomaly: contradictory or missing bank status (charged=" + charged + ", count=" + count + "); kept UNKNOWN");
+                    payment.setNextRetryAt(null);
+                    paymentRepository.saveAndFlush(payment);
                 }
             });
 

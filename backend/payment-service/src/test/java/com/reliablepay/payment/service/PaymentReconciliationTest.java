@@ -123,42 +123,126 @@ class PaymentReconciliationTest {
     }
 
     @Test
-    @DisplayName("UNKNOWN + bank reports charged=true BUT count=0 -> does NOT become SUCCESS, safely moves to RETRYING")
-    void unknownChargedZeroCountDoesNotBecomeSuccess() {
+    @DisplayName("charged == true -> SUCCESS even if count is 0 or missing (logs WARN)")
+    void unknownChargedZeroCountOrMissingResolvesToSuccess() {
         Payment payment = createUnknownPayment(10);
 
-        // Suspicious payload: charged=true, but count=0
+        // Bank reports charged=true but count=0
         when(bankClient.getStatus(eq(payment.getId().toString())))
                 .thenReturn(new BankStatusResponse(payment.getId().toString(), true, 0L));
 
         reconciliationWorker.reconcileUnknownPayments();
 
         Payment reconciled = paymentRepository.findById(payment.getId()).orElseThrow();
-        // Crucial invariant: never mark SUCCESS when bank reports zero charges!
-        assertThat(reconciled.getStatus()).isEqualTo(PaymentStatus.RETRYING);
-        assertThat(reconciled.getLastError()).contains("charge not found (count=0)");
+        assertThat(reconciled.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+        assertThat(reconciled.getNextRetryAt()).isNull();
         verify(bankClient, never()).charge(any(), any(), any());
     }
 
     @Test
-    @DisplayName("BankStatusResponse deserializes both count and chargeCount JSON fields accurately")
-    void bankStatusDeserializationMapsChargeCount() throws Exception {
+    @DisplayName("charged == false and count == 0 -> RETRYING for immediate retry")
+    void unknownNotChargedZeroCountMovesToRetrying() {
+        Payment payment = createUnknownPayment(10);
+
+        when(bankClient.getStatus(eq(payment.getId().toString())))
+                .thenReturn(new BankStatusResponse(payment.getId().toString(), false, 0L));
+
+        reconciliationWorker.reconcileUnknownPayments();
+
+        Payment reconciled = paymentRepository.findById(payment.getId()).orElseThrow();
+        assertThat(reconciled.getStatus()).isEqualTo(PaymentStatus.RETRYING);
+        assertThat(reconciled.getNextRetryAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Contradictory status (charged == false but count > 0) -> keeps UNKNOWN, does NOT retry")
+    void contradictoryStatusKeepsUnknownNoRetry() {
+        Payment payment = createUnknownPayment(10);
+
+        // Contradictory: reported not charged, but charge count is 2!
+        when(bankClient.getStatus(eq(payment.getId().toString())))
+                .thenReturn(new BankStatusResponse(payment.getId().toString(), false, 2L));
+
+        reconciliationWorker.reconcileUnknownPayments();
+
+        Payment kept = paymentRepository.findById(payment.getId()).orElseThrow();
+        assertThat(kept.getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(kept.getNextRetryAt()).isNull();
+        assertThat(kept.getLastError()).contains("Reconciliation anomaly: contradictory or missing bank status");
+    }
+
+    @Test
+    @DisplayName("Missing fields (charged == null or count == null) -> keeps UNKNOWN, does NOT retry")
+    void missingFieldsKeepsUnknownNoRetry() {
+        Payment payment1 = createUnknownPayment(10);
+
+        // Missing charged field
+        when(bankClient.getStatus(eq(payment1.getId().toString())))
+                .thenReturn(new BankStatusResponse(payment1.getId().toString(), null, 0L));
+
+        reconciliationWorker.reconcileUnknownPayments();
+
+        Payment kept1 = paymentRepository.findById(payment1.getId()).orElseThrow();
+        assertThat(kept1.getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(kept1.getNextRetryAt()).isNull();
+
+        Payment payment2 = createUnknownPayment(10);
+        // Missing count field when charged is false
+        when(bankClient.getStatus(eq(payment2.getId().toString())))
+                .thenReturn(new BankStatusResponse(payment2.getId().toString(), false, null));
+
+        reconciliationWorker.reconcileUnknownPayments();
+
+        Payment kept2 = paymentRepository.findById(payment2.getId()).orElseThrow();
+        assertThat(kept2.getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(kept2.getNextRetryAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("BankStatusResponse deserialization: only chargeCount, only count, both, missing, contradictory")
+    void bankStatusDeserializationAllVariants() throws Exception {
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
-        // JSON format emitted by mock-bank (using chargeCount field)
-        String mockBankJson = "{\"paymentRef\":\"c695f390-f7f5-4ff6-8cde-d6b3c45f94b3\",\"charged\":true,\"chargeCount\":1}";
-        BankStatusResponse res1 = mapper.readValue(mockBankJson, BankStatusResponse.class);
-
-        assertThat(res1.paymentRef()).isEqualTo("c695f390-f7f5-4ff6-8cde-d6b3c45f94b3");
+        // 1. Only chargeCount
+        String jsonChargeCount = "{\"paymentRef\":\"ref-1\",\"charged\":true,\"chargeCount\":1}";
+        BankStatusResponse res1 = mapper.readValue(jsonChargeCount, BankStatusResponse.class);
+        assertThat(res1.paymentRef()).isEqualTo("ref-1");
         assertThat(res1.charged()).isTrue();
         assertThat(res1.count()).isEqualTo(1L);
-        assertThat(res1.hasConfirmedCharge()).isTrue();
 
-        // JSON format using count field
-        String standardJson = "{\"paymentRef\":\"c695f390-f7f5-4ff6-8cde-d6b3c45f94b3\",\"charged\":true,\"count\":2}";
-        BankStatusResponse res2 = mapper.readValue(standardJson, BankStatusResponse.class);
+        // 2. Only count
+        String jsonCount = "{\"paymentRef\":\"ref-2\",\"charged\":false,\"count\":0}";
+        BankStatusResponse res2 = mapper.readValue(jsonCount, BankStatusResponse.class);
+        assertThat(res2.paymentRef()).isEqualTo("ref-2");
+        assertThat(res2.charged()).isFalse();
+        assertThat(res2.count()).isEqualTo(0L);
 
-        assertThat(res2.count()).isEqualTo(2L);
-        assertThat(res2.hasConfirmedCharge()).isTrue();
+        // 3. Both chargeCount and count
+        String jsonBoth = "{\"paymentRef\":\"ref-3\",\"charged\":true,\"chargeCount\":3,\"count\":3}";
+        BankStatusResponse res3 = mapper.readValue(jsonBoth, BankStatusResponse.class);
+        assertThat(res3.charged()).isTrue();
+        assertThat(res3.count()).isEqualTo(3L);
+
+        // 4. Missing fields
+        String jsonMissingCharged = "{\"paymentRef\":\"ref-4\",\"count\":1}";
+        BankStatusResponse resMissingCharged = mapper.readValue(jsonMissingCharged, BankStatusResponse.class);
+        assertThat(resMissingCharged.charged()).isNull();
+        assertThat(resMissingCharged.count()).isEqualTo(1L);
+
+        String jsonMissingCount = "{\"paymentRef\":\"ref-5\",\"charged\":false}";
+        BankStatusResponse resMissingCount = mapper.readValue(jsonMissingCount, BankStatusResponse.class);
+        assertThat(resMissingCount.charged()).isFalse();
+        assertThat(resMissingCount.count()).isNull();
+
+        String jsonMissingBoth = "{\"paymentRef\":\"ref-6\"}";
+        BankStatusResponse resMissingBoth = mapper.readValue(jsonMissingBoth, BankStatusResponse.class);
+        assertThat(resMissingBoth.charged()).isNull();
+        assertThat(resMissingBoth.count()).isNull();
+
+        // 5. Contradictory (charged == false but count > 0)
+        String jsonContradictory = "{\"paymentRef\":\"ref-7\",\"charged\":false,\"count\":5}";
+        BankStatusResponse resContradictory = mapper.readValue(jsonContradictory, BankStatusResponse.class);
+        assertThat(resContradictory.charged()).isFalse();
+        assertThat(resContradictory.count()).isEqualTo(5L);
     }
 }
