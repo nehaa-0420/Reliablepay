@@ -1,18 +1,31 @@
 const http = require('http');
 
+const BASE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:8080';
+const username = process.env.ADMIN_USERNAME;
+const password = process.env.ADMIN_PASSWORD;
+
+if (!username || !password) {
+  console.error('Error: ADMIN_USERNAME and ADMIN_PASSWORD environment variables are required.');
+  console.error('Usage: ADMIN_USERNAME=<username> ADMIN_PASSWORD=<password> node scripts/verify_live_streams.js');
+  process.exit(1);
+}
+
 async function main() {
   console.log('--- Step 1: Admin Login & JWT Acquisition ---');
-  const loginRes = await fetch('http://localhost:8080/api/auth/admin/login', {
+  const loginRes = await fetch(`${BASE_URL}/api/auth/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'adminpassword' })
+    body: JSON.stringify({ username, password })
   });
+  if (!loginRes.ok) {
+    throw new Error(`Admin login failed with status ${loginRes.status}: ${await loginRes.text()}`);
+  }
   const loginData = await loginRes.json();
   const token = loginData.token;
   console.log('Admin login successful. Token acquired.');
 
   console.log('\n--- Step 2: Configure Chaos (timeoutRate=0.4, errorRate=0.2) ---');
-  const chaosRes = await fetch('http://localhost:8080/api/chaos', {
+  const chaosRes = await fetch(`${BASE_URL}/api/chaos`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -31,7 +44,7 @@ async function main() {
 
   console.log('\n--- Step 3: Connect to Admin SSE Stream ---');
   const adminStreamEvents = [];
-  const adminRes = await fetch('http://localhost:8080/api/admin/stream', {
+  const adminRes = await fetch(`${BASE_URL}/api/admin/stream`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   
@@ -64,7 +77,7 @@ async function main() {
 
   console.log('\n--- Step 4: Create a New Payment Under Chaos ---');
   const idempKey = 'live-stream-' + Date.now();
-  const createRes = await fetch('http://localhost:8080/api/payments', {
+  const createRes = await fetch(`${BASE_URL}/api/payments`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,7 +94,7 @@ async function main() {
   console.log('Created payment:', payment.id, 'Status:', payment.status);
 
   console.log('\n--- Step 5: Connect to Customer Payment SSE Stream ---');
-  const payRes = await fetch(`http://localhost:8080/api/payments/${payment.id}/stream`);
+  const payRes = await fetch(`${BASE_URL}/api/payments/${payment.id}/stream`);
   const payReader = payRes.body.getReader();
   const payStreamEvents = [];
 

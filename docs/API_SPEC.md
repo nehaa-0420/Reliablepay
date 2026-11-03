@@ -79,6 +79,14 @@ Opens a global real-time event stream for administrative monitoring and operatio
   1. Immediately emits a `snapshot` event containing status counts and the last 20 transition events across all payments.
   2. Emits `transition` events for every committed payment state transition in the system.
 
+### Automated Stream Verification (`scripts/verify_live_streams.js`)
+To verify both customer and admin SSE streams under live chaos from the command line:
+```bash
+ADMIN_USERNAME=<your-admin-username> ADMIN_PASSWORD=<your-admin-password> node scripts/verify_live_streams.js
+```
+The script logs in to obtain an admin JWT, applies chaos, subscribes to `/api/admin/stream`, creates a payment, subscribes to `/api/payments/{id}/stream`, and displays the received transition events.
+
+
 ---
 
 ## 3. Customer Payment Operations (Public Endpoints)

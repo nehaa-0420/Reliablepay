@@ -151,6 +151,23 @@ powershell -ExecutionPolicy Bypass -File scripts/wake.ps1
 
 The script polls `/actuator/health` on both services until both report `UP`. Cold start duration is typically **50 – 80 seconds**. Once warm, all API requests respond within **15 – 35 ms**.
 
+### Post-Deployment Verification Scripts
+
+1. **Acceptance Test Suite**:
+   ```bash
+   node scripts/verify_acceptance.js
+   ```
+2. **Live SSE Event Streams Verification**:
+   ```bash
+   ADMIN_USERNAME=<your-admin-username> ADMIN_PASSWORD=<your-admin-password> node scripts/verify_live_streams.js
+   ```
+   Or in PowerShell:
+   ```powershell
+   $env:ADMIN_USERNAME = "<your-admin-username>"
+   $env:ADMIN_PASSWORD = "<your-admin-password>"
+   node scripts/verify_live_streams.js
+   ```
+
 ---
 
 ## 6. Historical Track Record
