@@ -1,6 +1,6 @@
 # ReliablePay — Official Handoff Facts & Metrics Sheet
 **Version**: 1.0.0 (Review 3 Final Release)  
-**Date of Verification**: November 3, 2026  
+**Date of Verification**: November 4, 2026  
 **Target Audience**: Report Authors, Presentation Leads, Viva Panel Representatives, QA Auditors  
 **Repository Branch**: `main` | **Target Deployment**: Local Docker Compose / Render / Vercel  
 
@@ -62,13 +62,24 @@ The following metrics were gathered on **November 3, 2026** using the automated 
 
 ## 3. High-Throughput Stress Testing & Load Limits
 
-Tested using [`scripts/load_test.js`](../../scripts/load_test.js) and Apache JMeter test profiles:
-* **Concurrent Virtual Users (VUs)**: 100 concurrent threads
-* **Target Load**: 1,000 sustained requests
-* **Peak Throughput**: **280 – 340 requests per second (RPS)** on a single local Spring Boot JVM instance
-* **Zero Race-Condition Breaches**: 0 duplicate rows created in `public.payments` or `bank.bank_ledger` under concurrent submissions with identical idempotency keys
-* **P99 Latency under Clean Conditions**: < 45 ms
-* **Database Connection Pool**: HikariCP configured with 20 maximum connections, 30,000 ms connection timeout
+Empirically measured using the automated Node.js load runner [`scripts/load_test.js`](../../scripts/load_test.js) (equivalent workload to JMeter test plan `docs/jmeter/payment-load.jmx`):
+* **Testing Tool**: Node.js load runner (`scripts/load_test.js`, not Apache JMeter)
+* **Test Machine**: Windows_NT 10.0.26300 (x64), Node v24.19.0, JDK 25
+* **Execution Date**: November 4, 2026
+* **Workload Parameters**: 100 concurrent virtual users ramping over 10 seconds (total test duration: 25.6s)
+* **Total Requests Dispatched**: 1,860 requests
+* **Measured Sustained Throughput**: **72.46 requests per second (req/sec)**
+* **Latency Profile**:
+  * Minimum Latency: **26 ms**
+  * Average Latency: **940.0 ms**
+  * 50th Percentile (P50): **862 ms**
+  * 90th Percentile (P90): **1,771 ms**
+  * 95th Percentile (P95): **1,978 ms**
+  * 99th Percentile (P99): **2,325 ms**
+  * Maximum Latency: **2,506 ms**
+* **Zero Race-Condition Breaches**: **0** duplicate orders created in `public.payments` or `bank.bank_charges` under concurrent submissions with identical idempotency keys.
+* **Historical Baseline Comparison (Phase 6)**: An earlier run recorded in `scripts/load_test_results.json` measured **102.10 req/sec** sustained throughput (2,740 requests, average latency 667.3 ms, P95 2,054 ms, P99 2,468 ms). Both runs confirm consistent tail latencies bounded near the 2,000 ms timeout window.
+* *(Note: Earlier speculative estimates citing "280–340 RPS, <45 ms P99" were removed as unverified; all figures here are directly verified against script execution telemetry).*
 
 ---
 
@@ -137,3 +148,4 @@ The architectural diagrams are available in high-resolution Mermaid format insid
 3. **`lost_response_sequence.mmd`**: Detailed chronological interaction of the "Lost-Response" network timeout and reconciliation recovery.
 4. **`database_er.mmd`**: Complete relational schema matching Flyway migration scripts across `public` and `bank` schemas.
 5. **`sse_realtime_flow.mmd`**: Event publication lifecycle with `TransactionSynchronization.afterCommit` dispatch to connected SSE clients.
+

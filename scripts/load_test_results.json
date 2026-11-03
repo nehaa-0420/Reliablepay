@@ -4,20 +4,20 @@
     "virtualUsers": 100,
     "rampUpSeconds": 10,
     "totalDurationSeconds": 25,
-    "totalDurationMs": 26837
+    "totalDurationMs": 25668
   },
-  "throughputRps": 102.1,
-  "totalRequests": 2740,
-  "successfulRequests": 1704,
-  "failedRequests": 1036,
-  "errorRatePct": 37.81,
+  "throughputRps": 72.46,
+  "totalRequests": 1860,
+  "successfulRequests": 621,
+  "failedRequests": 1239,
+  "errorRatePct": 66.61,
   "latencies": {
-    "minMs": 14,
-    "avgMs": 667.3,
-    "maxMs": 3448,
-    "p50Ms": 386,
-    "p90Ms": 1662,
-    "p95Ms": 2054,
-    "p99Ms": 2468
+    "minMs": 26,
+    "avgMs": 940,
+    "maxMs": 2506,
+    "p50Ms": 862,
+    "p90Ms": 1771,
+    "p95Ms": 1978,
+    "p99Ms": 2325
   }
 }

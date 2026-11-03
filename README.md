@@ -142,11 +142,17 @@ Direct Comparison UI        http://localhost:5173/compare/2c893ae2-3a68-4358-81d
 ```
 
 ### High-Throughput Stress Test (scripts/load_test.js)
-- **Total Requests**: 2,740 transactions
-- **Throughput**: 102.10 requests/second sustained
+Measured using `node scripts/load_test.js` (Node.js load runner simulating 100 concurrent virtual users ramping over 10 seconds):
+- **Tool**: Node.js load runner (`scripts/load_test.js`, not Apache JMeter)
+- **Machine**: Windows_NT 10.0.26300 (x64), Node v24.19.0, JDK 25
+- **Date**: November 4, 2026
+- **Total Requests**: 1,860 requests (25-second run)
+- **Throughput**: 72.46 requests/second sustained
 - **Deadlocks / Integrity Violations**: 0
-- **Average Latency**: 667 ms
-- **P95 Latency**: 2,054 ms
+- **Average Latency**: 940.0 ms
+- **P95 Latency**: 1,978 ms
+- **P99 Latency**: 2,325 ms
+*(Historical baseline from Phase 6 recorded 102.10 req/s, avg latency 667 ms, P95 2,054 ms across 2,740 requests)*
 
 ---
 
@@ -294,6 +300,11 @@ payment-reliability-system/
 
 ## 7. Cloud Deployment (Render & Vercel) — Review 3
 
+### Deployed URLs
+> ⚠️ **Deployment Status**: **Not deployed yet**.
+> 
+> The application code, Dockerfiles, Render Blueprint (`render.yaml`), and Vercel configuration (`frontend/vercel.json`) are fully prepared and verified locally. Public cloud instances on Render and Vercel have not yet been provisioned on personal student accounts (endpoints returned 404 / no-server). Complete step-by-step instructions to connect GitHub repositories are provided in [docs/DEPLOYMENT.md](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/DEPLOYMENT.md).
+
 The system includes automated deployment manifests for free-tier cloud hosting:
 - **Render Blueprint (`render.yaml`)**:
   - `reliablepay-db`: Managed PostgreSQL 16
@@ -335,19 +346,21 @@ In accordance with academic rigor, the prototype maintains clear scope boundarie
 
 ## 10. Automated Test Report
 
+*Verified on: November 4, 2026*
+
 ```
 ------------------------------------------------------------------------
-TEST SUITE SUMMARY: ReliablePay
+TEST SUITE SUMMARY: ReliablePay (Verified: 2026-11-04)
 ------------------------------------------------------------------------
 Module                  Tests Run   Failures    Errors    Skipped   Status
 ------------------------------------------------------------------------
-payment-service (Core)  35          0           0         0         PASSED
+payment-service (Core)  69          0           0         0         PASSED
 mock-bank (Gateway)     9           0           0         0         PASSED
-Frontend Build (Vite)   3,193 mods  0           0         0         PASSED
+Frontend Build (Vite)   3,207 mods  0           0         0         PASSED
 Acceptance E2E Suite    3 Suites    0           0         0         PASSED
 ------------------------------------------------------------------------
-TOTAL                   47 Tests    0           0         0         100% PASS
+TOTAL                   78 Tests    0           0         0         100% PASS
 ------------------------------------------------------------------------
 ```
 
-*For viva review preparation, consult [docs/DEMO_SCRIPT.md](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/DEMO_SCRIPT.md) for the 3-minute panel demonstration and [docs/REVIEW_PACK.md](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/REVIEW_PACK.md) for panel defense Q&A.*
+*For viva review preparation, consult [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md) for the master guide, [docs/handoff/FACTS_SHEET.md](docs/handoff/FACTS_SHEET.md) for verified empirical metrics, and [docs/REVIEW_PACK.md](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/REVIEW_PACK.md) for panel defense Q&A.*
