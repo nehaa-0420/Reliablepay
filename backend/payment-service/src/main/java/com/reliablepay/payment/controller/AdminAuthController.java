@@ -141,10 +141,18 @@ public class AdminAuthController {
     }
 
     private String extractClientIp(HttpServletRequest request) {
+        // 1. Check X-Forwarded-For (standard for reverse proxies on Render; first entry is client IP)
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
             return forwarded.split(",")[0].trim();
         }
-        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
+        // 2. Check X-Real-IP (used by some ingress controllers)
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        // 3. Fallback to remoteAddr (populated by Spring's ForwardedHeaderFilter when strategy=framework)
+        String remoteAddr = request.getRemoteAddr();
+        return (remoteAddr != null && !remoteAddr.isBlank()) ? remoteAddr : "unknown";
     }
 }

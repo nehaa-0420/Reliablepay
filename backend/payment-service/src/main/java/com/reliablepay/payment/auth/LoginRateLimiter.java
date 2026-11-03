@@ -57,6 +57,24 @@ public class LoginRateLimiter {
     }
 
     /**
+     * Records a failed login attempt with an explicit timestamp (package-private for testing expiration).
+     */
+    void recordFailureAt(String ip, long timestamp) {
+        if (ip == null || ip.isBlank()) {
+            return;
+        }
+        long cutoff = System.currentTimeMillis() - WINDOW_MS;
+        failedAttemptsPerIp.compute(ip, (k, attempts) -> {
+            if (attempts == null) {
+                attempts = new ConcurrentLinkedQueue<>();
+            }
+            cleanOldAttempts(attempts, cutoff);
+            attempts.add(timestamp);
+            return attempts;
+        });
+    }
+
+    /**
      * Resets failed login counters upon a successful login.
      */
     public void recordSuccess(String ip) {

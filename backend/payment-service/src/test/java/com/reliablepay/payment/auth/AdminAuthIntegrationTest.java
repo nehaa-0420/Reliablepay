@@ -120,6 +120,84 @@ class AdminAuthIntegrationTest {
     }
 
     @Test
+    @DisplayName("Behind a proxy, X-Forwarded-For isolates rate limiting so one attacker cannot lock out other clients")
+    void proxyXForwardedForIsolatesRateLimiting() throws Exception {
+        loginRateLimiter.reset();
+
+        String proxyIp = "10.0.0.1";
+        String attackerClientIp = "203.0.113.195";
+        String adminClientIp = "198.51.100.22";
+
+        var badRequest = java.util.Map.of("username", "admin", "password", "bad-pass");
+        var goodRequest = java.util.Map.of("username", "admin", "password", "adminpassword");
+
+        // Attacker fails 5 times via proxy with multi-hop X-Forwarded-For
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/admin/login")
+                            .header("X-Forwarded-For", attackerClientIp + ", " + proxyIp)
+                            .with(req -> {
+                                req.setRemoteAddr(proxyIp);
+                                return req;
+                            })
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(badRequest)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        // Attacker's 6th attempt from 203.0.113.195 is blocked with 429
+        mockMvc.perform(post("/api/auth/admin/login")
+                        .header("X-Forwarded-For", attackerClientIp + ", " + proxyIp)
+                        .with(req -> {
+                            req.setRemoteAddr(proxyIp);
+                            return req;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(badRequest)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.status").value(429));
+
+        // Real admin arrives through the exact same proxy (10.0.0.1) with X-Forwarded-For: 198.51.100.22
+        // Must NOT be locked out, and succeeds with 200 OK + Bearer token
+        mockMvc.perform(post("/api/auth/admin/login")
+                        .header("X-Forwarded-For", adminClientIp + ", " + proxyIp)
+                        .with(req -> {
+                            req.setRemoteAddr(proxyIp);
+                            return req;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(goodRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isString())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
+
+    @Test
+    @DisplayName("Admin can log in again after the 60-second rate limiting window passes")
+    void adminCanLoginAfterRateLimitingWindowPasses() throws Exception {
+        loginRateLimiter.reset();
+
+        String clientIp = "198.51.100.88";
+        long oldTimestamp = System.currentTimeMillis() - 65_000L; // 65 seconds ago (past the 60s window)
+
+        // Seed 5 failures in the past window
+        for (int i = 0; i < 5; i++) {
+            loginRateLimiter.recordFailureAt(clientIp, oldTimestamp + i);
+        }
+
+        // Verify that rate limiter recognizes the window has expired and client is NOT blocked
+        assertThat(loginRateLimiter.isBlocked(clientIp)).isFalse();
+
+        // Real admin logs in with correct credentials and succeeds
+        var goodRequest = java.util.Map.of("username", "admin", "password", "adminpassword");
+        mockMvc.perform(post("/api/auth/admin/login")
+                        .header("X-Forwarded-For", clientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(goodRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isString());
+    }
+
+    @Test
     @DisplayName("GET /api/auth/admin/me returns token info for valid Bearer token")
     void adminMeValidToken() throws Exception {
         String token = tokenService.generateToken("admin");
