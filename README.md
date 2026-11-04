@@ -144,15 +144,20 @@ Direct Comparison UI        http://localhost:5173/compare/2c893ae2-3a68-4358-81d
 ### High-Throughput Stress Test (scripts/load_test.js)
 Measured using `node scripts/load_test.js` (Node.js load runner simulating 100 concurrent virtual users ramping over 10 seconds):
 - **Tool**: Node.js load runner (`scripts/load_test.js`, not Apache JMeter)
-- **Machine**: Windows_NT 10.0.26300 (x64), Node v24.19.0, JDK 25
+- **Evidence Files**: [`docs/handoff/evidence/load_test.txt`](docs/handoff/evidence/load_test.txt), [`docs/handoff/evidence/load_test_results.json`](docs/handoff/evidence/load_test_results.json)
+- **Machine**: Microsoft Windows 11 Pro (10.0.26300), Node v24.19.0, JDK 25
 - **Date**: November 4, 2026
-- **Total Requests**: 1,860 requests (25-second run)
-- **Throughput**: 72.46 requests/second sustained
+- **Total Requests**: 1,699 requests across 25 seconds
+- **Successful Requests (201 Created)**: 787
+- **Failed Requests (500 Error)**: 912 (Caused by Spring's in-memory async thread pool queue capacity of 500 being saturated under 100 concurrent VUs pushing ~65 req/s)
+- **Throughput**: 65.72 requests/second sustained
 - **Deadlocks / Integrity Violations**: 0
-- **Average Latency**: 940.0 ms
-- **P95 Latency**: 1,978 ms
-- **P99 Latency**: 2,325 ms
-*(Historical baseline from Phase 6 recorded 102.10 req/s, avg latency 667 ms, P95 2,054 ms across 2,740 requests)*
+- **Average Latency**: 1,011.2 ms
+- **P50 Latency**: 980 ms
+- **P95 Latency**: 1,879 ms
+- **P99 Latency**: 2,505 ms
+- **Historical Comparison**: An earlier run in Phase 6 without queue saturation recorded 102.10 req/s, avg latency 667 ms, P95 2,054 ms across 2,740 requests (`docs/PHASE6_REPORT.md`). Both runs verify bounded tail latencies near the 2,000 ms timeout window and 0 race condition breaches.
+
 
 ---
 
@@ -219,18 +224,26 @@ node scripts/verify_acceptance.js
 
 ### Test Commands Reference
 
-Run any test suite with these verified commands:
+#### Running Tests Locally (Important Operational Prerequisites)
+- **Docker PostgreSQL Must Be Running**: Tests execute against live PostgreSQL on port 5432 (`docker compose up -d db` or `docker start payment-reliability-system-db-1`).
+- **Windows IPv4 Binding**: On Windows PowerShell, execute `$env:DB_HOST="127.0.0.1"` prior to running `mvn test` so Java 25 does not attempt to resolve `localhost` to IPv6 `::1`.
+- **Database Dev Contamination**: Tests write integration records to the local development database. Always invoke `POST /api/admin/reset` (via `node scripts/prepare_demo.js` or curl with `X-Admin-Token: demo-secret-token`) before launching live review demonstrations.
+- **Docker Desktop Resource Saver**: Docker Desktop on Windows may pause idle containers after 60 seconds; ensure the database container is unpaused before executing Maven tests.
 
 ```bash
 # 1. Payment Service Unit & Integration Tests (69 tests)
+# Evidence: docs/handoff/evidence/mvn_payment_service.txt
 cd backend/payment-service
+$env:DB_HOST="127.0.0.1"   # On Windows PowerShell
 mvn test
 
 # 2. Mock Bank Gateway & Chaos Tests (9 tests)
+# Evidence: docs/handoff/evidence/mvn_mock_bank.txt
 cd backend/mock-bank
 mvn test
 
 # 3. Frontend Production Build & Bundle Validation
+# Evidence: docs/handoff/evidence/npm_build.txt
 cd frontend
 npm ci
 npm run build
@@ -242,6 +255,7 @@ node scripts/verify_acceptance.js
 node scripts/run_handoff_benchmarks.js
 
 # 6. High-Throughput Load Stress Test (100 VUs)
+# Evidence: docs/handoff/evidence/load_test.txt
 node scripts/load_test.js
 ```
 
@@ -346,7 +360,8 @@ In accordance with academic rigor, the prototype maintains clear scope boundarie
 
 ## 10. Automated Test Report
 
-*Verified on: November 4, 2026*
+*Verified on: November 4, 2026*  
+*Captured Raw Evidence: [`docs/handoff/evidence/`](docs/handoff/evidence/)*
 
 ```
 ------------------------------------------------------------------------
@@ -361,6 +376,22 @@ Acceptance E2E Suite    3 Suites    0           0         0         PASSED
 ------------------------------------------------------------------------
 TOTAL                   78 Tests    0           0         0         100% PASS
 ------------------------------------------------------------------------
+
+Backend Test Class Breakdown (14 Test Classes):
+• com.reliablepay.payment.auth.AdminAuthIntegrationTest (10 tests)
+• com.reliablepay.payment.auth.AdminStartupSafetyTest (6 tests)
+• com.reliablepay.payment.config.AdminSecurityTest (6 tests)
+• com.reliablepay.payment.controller.PaymentControllerIntegrationTest (9 tests)
+• com.reliablepay.payment.controller.PaymentStreamIntegrationTest (4 tests)
+• com.reliablepay.payment.event.PaymentEventHubTest (5 tests)
+• com.reliablepay.payment.service.PaymentIdempotencyTest (4 tests)
+• com.reliablepay.payment.service.PaymentLatencyMetricsTest (2 tests)
+• com.reliablepay.payment.service.PaymentReconciliationTest (8 tests)
+• com.reliablepay.payment.service.PaymentRetryEngineTest (4 tests)
+• com.reliablepay.payment.service.PaymentStateMachineTest (7 tests)
+• com.reliablepay.payment.worker.PaymentRecoveryWorkerTest (4 tests)
+• com.reliablepay.mockbank.BankServiceTest (4 tests)
+• com.reliablepay.mockbank.config.BankAdminSecurityTest (5 tests)
 ```
 
 *For viva review preparation, consult [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md) for the master guide, [docs/handoff/FACTS_SHEET.md](docs/handoff/FACTS_SHEET.md) for verified empirical metrics, and [docs/REVIEW_PACK.md](file:///c:/Users/Admin/Downloads/payment-reliability-system/payment-reliability-system/docs/REVIEW_PACK.md) for panel defense Q&A.*

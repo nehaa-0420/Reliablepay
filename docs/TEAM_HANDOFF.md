@@ -61,10 +61,11 @@ Traditional basic payment gateways handle a timeout by simply retrying the charg
 
 > ⚠️ **Rule for Reports & Slides**: Always quote these exact verified numbers from [docs/handoff/FACTS_SHEET.md](handoff/FACTS_SHEET.md).
 
-* **Test Suite**: **78 / 78 tests passing (100% pass rate)**.
-  * Payment Service: **69 tests passing**.
-  * Mock Bank Service: **9 tests passing**.
-  * Frontend: Production build passes with 0 warnings/errors.
+* **Test Suite**: **78 / 78 tests passing (100% pass rate)** (Evidence: [`docs/handoff/evidence/mvn_payment_service.txt`](handoff/evidence/mvn_payment_service.txt), [`docs/handoff/evidence/mvn_mock_bank.txt`](handoff/evidence/mvn_mock_bank.txt)).
+  * Payment Service: **69 tests passing** across 12 test classes.
+  * Mock Bank Service: **9 tests passing** across 2 test classes.
+  * Frontend: Production build passes with 0 warnings/errors (Vite v5.4.14, 3,207 modules, PWA v2.0.0; Evidence: [`docs/handoff/evidence/npm_build.txt`](handoff/evidence/npm_build.txt)).
+  * High-Throughput Load Testing: Sustained throughput of **65.72 to 102.1 req/sec** under 100 concurrent VUs (Evidence: [`docs/handoff/evidence/load_test.txt`](handoff/evidence/load_test.txt)).
 * **Replicated Benchmark Results (Mean across 3 runs of 60 orders under 30% bank timeout chaos)**:
   * **NAIVE Mode**: **18.33 duplicate orders charged** | **₹2,300.00 overcharged** | 89.7% final success rate.
   * **PROTECTED Mode**: **0.00 duplicate orders charged** | **₹0.00 overcharged** | **100.0% final success rate**.

@@ -36,14 +36,26 @@ The following metrics were gathered on **November 3, 2026** using the automated 
 
 ### Statistical Comparison Table:
 
-| Metric | NAIVE Mode (Mean) | NAIVE Mode (Min – Max) | PROTECTED Mode (Mean) | PROTECTED Mode (Min – Max) | Absolute / Relative Improvement |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Duplicate Orders Charged** | **18.33** | 17 – 19 | **0.00** | **0 – 0** | **100% Elimination (18.33 → 0)** |
-| **Overcharged Amount (INR)** | **₹2,300.00** | ₹1,900 – ₹2,600 | **₹0.00** | **₹0.00 – ₹0.00** | **₹2,300.00 Protected per 60 orders** |
-| **Final Transaction Success Rate** | **89.7%** | 88.0% – 90.9% | **100.0%** | **100.0% – 100.0%** | **+10.3% Success Rate** |
-| **Mean Recovery Latency** | 21,803 ms | 20,719 – 23,497 ms | 22,361 ms | 21,492 – 23,117 ms | +558 ms (Reconciliation grace period) |
-| **Average End-to-End Latency** | 594.8 ms | 571.6 – 608.5 ms | 694.3 ms | 573.8 – 771.8 ms | +99.5 ms (Audit event persistence) |
-| **95th Percentile (P95) Latency**| 2,005.3 ms | 2,005 – 2,006 ms | 2,005.0 ms | 2,004 – 2,006 ms | Identical (~2,000 ms client timeout limit) |
+| Metric | Source JSON Field | NAIVE Mode (Mean) | NAIVE Mode (Min – Max) | PROTECTED Mode (Mean) | PROTECTED Mode (Min – Max) | Absolute / Relative Improvement |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Duplicate Orders Charged** | `duplicateOrdersCount` | **18.33** | 17 – 19 | **0.00** | **0 – 0** | **100% Elimination (18.33 → 0)** |
+| **Overcharged Amount (INR)** | `overchargedAmount` | **₹2,300.00** | ₹1,900 – ₹2,600 | **₹0.00** | **₹0.00 – ₹0.00** | **₹2,300.00 Protected per 60 orders** |
+| **Final Transaction Success Rate** | `retrySuccessRate` | **89.7%** | 88.0% – 90.9% | **100.0%** | **100.0% – 100.0%** | **+10.3% Success Rate** |
+| **Mean End-to-End Recovery Time** | `avgRecoveryMs` | 21,803 ms | 20,719 – 23,497 ms | 22,361 ms | 21,493 – 23,117 ms | +558 ms (Reconciliation grace period) |
+| **Average Bank Call Latency** | `avgLatencyMs` | 594.8 ms | 571.6 – 608.5 ms | 694.3 ms | 573.8 – 771.8 ms | +99.5 ms (Audit event persistence) |
+| **95th Percentile Bank Call Latency** | `p95LatencyMs` | 2,005.3 ms | 2,005 – 2,006 ms | 2,005.0 ms | 2,004 – 2,006 ms | Identical (~2,000 ms client read timeout) |
+
+#### Metric Clarification: Recovery Time vs. Attempt Latency
+It is essential not to conflate **Recovery Time** with **Attempt Latency**:
+1. **End-to-End Recovery Time (`avgRecoveryMs`)**: Measures the total elapsed time from the moment a payment order is first created until it reaches its final terminal `SUCCESS` state, specifically for transactions that experienced bank timeouts or transient failures requiring background recovery. In PROTECTED mode, this averages **22,361 ms** (mean across 3 runs: 22,473 ms, 21,493 ms, 23,117 ms).
+   - *Why does recovery take ~22 seconds?*
+     - **Client HTTP Timeout**: 2,000 ms before declaring an ambiguous timeout and transitioning the payment to `UNKNOWN`.
+     - **Reconciliation Grace Period**: A mandatory 5,000 ms settling period to guarantee the upstream bank's internal transaction has committed before ReliablePay queries status.
+     - **Scheduler Polling Intervals**: Spring `@Scheduled` background workers run periodically (`PaymentReconciliationWorker` polls every 10 seconds; `PaymentRetryWorker` polls every 5 seconds).
+     - **Exponential Backoff**: Jittered exponential delay ($500\text{ ms} \times 2^{\text{attempt}} \pm \text{jitter}$) adds 1,000–2,000 ms between retries.
+     - **Thread Queueing**: Under 10-concurrency load, worker queues introduce additional queueing delay.
+   - *Parameter Tuning Validation*: The parameter sweep documented in [`docs/EVALUATION.md`](../EVALUATION.md#b-reconciliation-grace-period-4s-vs-6s-vs-8s) proves that reducing the client bank read timeout (e.g. from 3,000 ms to 1,000 ms) and the reconciliation grace period (from 6,000 ms to 4,000 ms) significantly reduces average recovery time to **14,447 ms**. The 5-second buffer is deliberately chosen to prioritize safety over speed.
+2. **Individual Bank Attempt Latency (`avgLatencyMs` and `p95LatencyMs`)**: Measures the duration of a single synchronous HTTP call to the bank gateway (`POST /bank/charge`). In PROTECTED mode, average bank attempt latency is **694.3 ms**, and the 95th percentile latency is **2,005.0 ms** (`p95LatencyMs`), which directly reflects the 2,000 ms client socket read timeout ceiling during bank connection drops.
 
 ### Individual Replicated Run Logs:
 
@@ -64,21 +76,24 @@ The following metrics were gathered on **November 3, 2026** using the automated 
 
 Empirically measured using the automated Node.js load runner [`scripts/load_test.js`](../../scripts/load_test.js) (equivalent workload to JMeter test plan `docs/jmeter/payment-load.jmx`):
 * **Testing Tool**: Node.js load runner (`scripts/load_test.js`, not Apache JMeter)
-* **Test Machine**: Windows_NT 10.0.26300 (x64), Node v24.19.0, JDK 25
+* **Evidence Files**: [`docs/handoff/evidence/load_test.txt`](evidence/load_test.txt), [`docs/handoff/evidence/load_test_results.json`](evidence/load_test_results.json)
+* **Test Machine**: Microsoft Windows 11 Pro 10.0.26300, Node v24.19.0, JDK 25
 * **Execution Date**: November 4, 2026
-* **Workload Parameters**: 100 concurrent virtual users ramping over 10 seconds (total test duration: 25.6s)
-* **Total Requests Dispatched**: 1,860 requests
-* **Measured Sustained Throughput**: **72.46 requests per second (req/sec)**
+* **Workload Parameters**: 100 concurrent virtual users ramping over 10 seconds (total test duration: 25.8s)
+* **Total Requests Dispatched**: 1,699 requests
+* **Successful Requests (201 Created)**: 787
+* **Failed Requests (500 Internal Server Error)**: 912 (caused by Spring's 500-slot async thread pool queue capacity saturation under 100 concurrent VUs pushing ~65 req/s sustained)
+* **Measured Sustained Throughput**: **65.72 requests per second (req/sec)**
 * **Latency Profile**:
-  * Minimum Latency: **26 ms**
-  * Average Latency: **940.0 ms**
-  * 50th Percentile (P50): **862 ms**
-  * 90th Percentile (P90): **1,771 ms**
-  * 95th Percentile (P95): **1,978 ms**
-  * 99th Percentile (P99): **2,325 ms**
-  * Maximum Latency: **2,506 ms**
+  * Minimum Latency: **37 ms**
+  * Average Latency: **1,011.2 ms**
+  * 50th Percentile (P50): **980 ms**
+  * 90th Percentile (P90): **1,734 ms**
+  * 95th Percentile (P95): **1,879 ms**
+  * 99th Percentile (P99): **2,505 ms**
+  * Maximum Latency: **3,060 ms**
 * **Zero Race-Condition Breaches**: **0** duplicate orders created in `public.payments` or `bank.bank_charges` under concurrent submissions with identical idempotency keys.
-* **Historical Baseline Comparison (Phase 6)**: An earlier run recorded in `scripts/load_test_results.json` measured **102.10 req/sec** sustained throughput (2,740 requests, average latency 667.3 ms, P95 2,054 ms, P99 2,468 ms). Both runs confirm consistent tail latencies bounded near the 2,000 ms timeout window.
+* **Historical Baseline Comparison (Phase 6)**: An earlier run recorded in `scripts/load_test_results.json` without queue saturation measured **102.10 req/sec** sustained throughput (2,740 requests, average latency 667.3 ms, P95 2,054 ms, P99 2,468 ms). Both runs confirm consistent tail latencies bounded near the 2,000 ms timeout window.
 * *(Note: Earlier speculative estimates citing "280–340 RPS, <45 ms P99" were removed as unverified; all figures here are directly verified against script execution telemetry).*
 
 ---

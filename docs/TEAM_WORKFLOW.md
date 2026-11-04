@@ -105,23 +105,33 @@ git restore --staged <file>
 
 ## 5. Local Verification Before Pushing
 
-Before opening a pull request, run the test suites to ensure zero regressions:
+### Running Tests Locally (Important Teammate Prerequisites)
+- **Docker PostgreSQL Must Be Running**: The microservice integration tests execute against a real PostgreSQL instance on port `5432` (`docker compose up -d db`). Ensure Docker Desktop is active.
+- **Windows IPv4 Binding**: On Windows PowerShell, define `$env:DB_HOST="127.0.0.1"` before invoking `mvn test`. Otherwise, Java 25 defaults to IPv6 `::1`, causing connection refused errors against Docker port mappings.
+- **Local Dev Database Contamination**: Tests write test transactions to the local database. Always run `POST /api/admin/reset` (or `node scripts/prepare_demo.js`) before presenting or running live UI demos.
+- **Docker Desktop Resource Saver**: Docker Desktop on Windows may put idle containers into power saving mode after 60 seconds of inactivity. If tests fail to connect, verify the database container status (`docker ps`) and wake it if paused.
 
 ```bash
 # 1. Test Mock Bank microservice (9 tests):
+# Evidence: docs/handoff/evidence/mvn_mock_bank.txt
 cd backend/mock-bank
 mvn test
 
 # 2. Test Payment Service microservice (69 tests):
+# Evidence: docs/handoff/evidence/mvn_payment_service.txt
 cd ../payment-service
+$env:DB_HOST="127.0.0.1"   # Windows PowerShell
 mvn test
 
 # 3. Test Frontend build:
+# Evidence: docs/handoff/evidence/npm_build.txt
 cd ../../frontend
+npm ci
 npm run build
 ```
 
-All 78 backend tests must pass, and the Vite production bundle must build with 0 errors.
+All 78 backend tests must pass (100%), and the Vite production bundle must build with 0 errors.
+
 
 ---
 
@@ -173,3 +183,4 @@ git rebase --continue
 git push --force-with-lease origin feature/<your-name>/<topic>
 ```
 *(Note: Never force-push to `main`).*
+
