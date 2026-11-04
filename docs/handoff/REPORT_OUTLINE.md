@@ -49,13 +49,14 @@
 * **Exact Repository Files**:
   * [`docs/LITERATURE_BASE_PAPERS.md`](../LITERATURE_BASE_PAPERS.md)
 * **Required Literature Review Table**:
-  > ⚠️ **Author Action Required**: Do **NOT** invent paper gaps. Fill in the exact bibliographic citations and verbatim limitations stated by authors from primary sources into the empty cells below.
+  > ⚠️ **Author Action Required**: **NONE of the author limitations below are verified** in this repository (only Paper B2 abstract was inspected during Phase 6). Do **NOT** invent paper gaps. The team must obtain and read the original physical or PDF full-text copies of all three papers to extract authentic bibliographic citations, page numbers, and verbatim limitations stated by the authors into the table below.
 
 | Paper Key | Primary Paper Title | Authors, Year, Venue [To Fill by Team] | Explicit Limitation Stated by Authors [To Fill with Page #] |
 | :---: | :--- | :--- | :--- |
-| **B1** | *Regulatory Frameworks and Transaction Auditability in Digital Clearing Houses* | [Author(s), Year, Conference/Journal] | "[Insert verbatim author limitation here, Page xx]" |
-| **B2** | *Quality-of-Service and Parameter Tuning for Network-Resilient Transaction Systems* | [Author(s), Year, IEEE/ACM Venue] | "[Insert verbatim author limitation here, Page xx]" |
-| **B3** | *Cascading Failure Mitigation and Timeout Handling in Upstream Banking Switches* | [Author(s), Year, Financial Systems Proceedings] | "[Insert verbatim author limitation here, Page xx]" |
+| **B1** | *E-Financial Sentinel: Navigating India's Digital Transaction Landscape* | [Author(s), Year, Venue — to fill from paper] | "[Insert verbatim author limitation here with exact page number — to fill from paper]" |
+| **B2** | *Statistical and Data Analytics Approaches to Parameter Tuning for QoS of E-Banking Transactions* | [Author(s), Year, Venue — to fill from paper] | "[Insert verbatim author limitation here with exact page number — to fill from paper]" |
+| **B3** | *Failure Propagation in SAP MultiBank Payment Batches Due to Unsynchronized Secure Channel Negotiations* | [Author(s), Year, Venue — to fill from paper] | "[Insert verbatim author limitation here with exact page number — to fill from paper]" |
+
 
 ---
 
@@ -148,3 +149,4 @@
   2. **Message Mesh Integration**: Replacing `@Scheduled` Spring polling workers with event-driven Apache Kafka consumer groups for massive horizontal throughput.
   3. **Binary Banking Protocols**: Developing an ISO 8583 / ISO 20022 ASN.1 binary gateway adapter.
   4. **Dynamic AI-Driven Grace Period**: Implementing predictive machine learning models to dynamically estimate bank processing latency based on time-of-day clearing congestion.
+

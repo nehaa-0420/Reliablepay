@@ -231,3 +231,4 @@ If Docker Desktop or localhost ports are blocked by security software:
 2. Open the verified raw JSON trial results in `docs/handoff/results/`:
    - `demo_run_1.json`, `demo_run_2.json`, `demo_run_3.json` to show the exact raw JSON event payloads.
 3. Open `docs/handoff/FACTS_SHEET.md` to walk through every mathematically proven metric.
+

@@ -65,3 +65,4 @@ To capture fresh high-resolution screenshots from a running local instance:
 4. **Audit and Commit**:
    - Verify file size is between 30 KB and 800 KB (no blank or 0-byte images).
    - Commit with message: `docs(screenshots): update UI captures for <screen>`.
+

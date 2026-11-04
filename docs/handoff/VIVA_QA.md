@@ -151,3 +151,4 @@
   1. The transaction is quarantined to prevent automated workers from making unverified decisions or issuing unauthorized retries.
   2. An alert event is dispatched to the Admin Console (`/admin/payments`), where the transaction is flagged for human operations review with a direct manual 'Requeue' or 'Force Resolve' action.
   3. The customer's UI displays a clear notification explaining that the payment is undergoing bank verification and that their balance has not been double-debited, adhering to banking SLA compliance standards."*
+
