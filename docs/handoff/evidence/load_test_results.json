@@ -1,0 +1,23 @@
+{
+  "testParameters": {
+    "endpoint": "/api/payments",
+    "virtualUsers": 100,
+    "rampUpSeconds": 10,
+    "totalDurationSeconds": 25,
+    "totalDurationMs": 25854
+  },
+  "throughputRps": 65.72,
+  "totalRequests": 1699,
+  "successfulRequests": 787,
+  "failedRequests": 912,
+  "errorRatePct": 53.68,
+  "latencies": {
+    "minMs": 37,
+    "avgMs": 1011.2,
+    "maxMs": 3060,
+    "p50Ms": 980,
+    "p90Ms": 1734,
+    "p95Ms": 1879,
+    "p99Ms": 2505
+  }
+}
